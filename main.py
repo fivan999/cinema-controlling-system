@@ -7,7 +7,6 @@ import sqlite3
 connection = sqlite3.connect("CinemaSystemDatabase.db")
 cursor = connection.cursor()
 
-
 class LoginWindow(QWidget):
     def __init__(self):
         super().__init__()
