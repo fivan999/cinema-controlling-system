@@ -512,5 +512,4 @@ if __name__ == "__main__":
     main_admin_window = MainAdminWindow()
     login_window = LoginWindow()
     register_window = RegisterWindow()
-    login_window.show()
     sys.exit(app.exec_())
