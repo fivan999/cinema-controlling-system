@@ -49,6 +49,19 @@
     </rect>
    </property>
   </widget>
+  <widget class="QPushButton" name="create_afisha_button">
+   <property name="geometry">
+    <rect>
+     <x>230</x>
+     <y>10</y>
+     <width>101</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Создать афишу</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>
