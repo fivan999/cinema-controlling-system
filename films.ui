@@ -13,19 +13,6 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <widget class="QPushButton" name="change_film_button">
-   <property name="geometry">
-    <rect>
-     <x>120</x>
-     <y>10</y>
-     <width>101</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Изменить фильм</string>
-   </property>
-  </widget>
   <widget class="QPushButton" name="add_film_button">
    <property name="geometry">
     <rect>
@@ -42,7 +29,7 @@
   <widget class="QPushButton" name="delete_film_button">
    <property name="geometry">
     <rect>
-     <x>230</x>
+     <x>120</x>
      <y>10</y>
      <width>101</width>
      <height>23</height>
