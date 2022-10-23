@@ -2,6 +2,8 @@ import shutil
 import sys
 from PyQt5 import uic, QtCore
 import datetime as dt
+
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QMessageBox,
                              QTableWidgetItem, QHeaderView, QFileDialog,
                              QMenu, QMenuBar, QAction)
@@ -29,7 +31,10 @@ def create_admin_windows():
 
 
 def create_user_window():
-    global user_main_window
+    global user_main_window, afisha_view, user_films, user_profile
+    afisha_view = AfishaView()
+    user_films = UserFilms()
+    user_profile = UserProfile()
     user_main_window = UserMainWindow()
 
 
@@ -56,7 +61,7 @@ class AdminMainWindow(MainWindow):
         super().__init__()
         uic.loadUi("admin_main_window.ui", self)
         self.setFixedWidth(710)
-        self.setWindowTitle("Фильмотека")
+        self.setWindowTitle("Администрирование")
         self.create_tab_widget()
         self.create_menubar()
 
@@ -72,64 +77,13 @@ class UserMainWindow(MainWindow):
     def __init__(self):
         super().__init__()
         uic.loadUi("user_main_window.ui", self)
-        self.setWindowTitle("Расписание фильмов")
+        self.setWindowTitle("Пользователь")
+        self.create_tab_widget()
         self.create_menubar()
-        self.initUI()
 
-    def initUI(self):
-        self.search_button.clicked.connect(self.search)
-        self.search_by_box.addItem("Нет")
-        self.search_by_box.addItem("Кинотеатр")
-        self.search_by_box.addItem("Название")
-        self.search_by_box.addItem("Жанр")
-        self.search_by_box.addItem("Максимальная цена")
-        self.base_query = f"SELECT films.id, films.name, genres.name, films.duration, " \
-                          f"films.datetime, cinemas.name, rooms.id, films.price FROM " \
-                          f"films INNER JOIN genres ON genres.id = films.genre INNER " \
-                          f"JOIN cinemas ON cinemas.id = films.cinema INNER JOIN rooms " \
-                          f"ON rooms.id = films.room"
-        self.query = self.base_query[:]
-        self.order = " ORDER BY films.datetime"
-        self.load_films_data()
-
-    def search(self):
-        search_by = self.search_by_box.currentText()
-        search_text = self.search_edit.text()
-
-        if search_by == 'Нет':
-            self.query = self.base_query[:]
-
-        if search_text:
-            if search_by == "Кинотеатр":
-                self.query = self.base_query + f" WHERE cinemas.name LIKE '%{search_text}%'"
-            elif search_by == "Название":
-                self.query = self.base_query + f" WHERE films.name LIKE '%{search_text}%'"
-            elif search_by == "Жанр":
-                self.query = self.base_query + f" WHERE genres.name LIKE '%{search_text}%'"
-            elif search_by == "Максимальная цена" and search_text.isdigit():
-                self.query = self.base_query + f" WHERE films.price <= {int(search_text)}"
-            self.load_films_data()
-
-    def load_films_data(self):
-        query_result = cursor.execute(self.query + self.order).fetchall()
-
-        if len(query_result):
-            self.films_table_data.setRowCount(len(query_result))
-            self.films_table_data.setColumnCount(len(query_result[0]))
-            titles = ["ИД", "Название фильма", "Жанр", "Продолжительность", "Начало", "Кинотеатр", "Зал", "Цена"]
-            self.films_table_data.setHorizontalHeaderLabels(titles)
-
-            for i, elem in enumerate(query_result):
-                for j, val in enumerate(elem):
-                    self.films_table_data.setItem(i, j, QTableWidgetItem(str(val)))
-                    self.films_table_data.item(i, j).setFlags(QtCore.Qt.ItemIsEnabled)
-            self.films_table_data.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        else:
-            self.clear_table()
-
-    def clear_table(self):
-        while self.films_table_data.rowCount():
-            self.films_table_data.removeRow(0)
+    def create_tab_widget(self):
+        self.tabWidget.addTab(user_films, "Фильмы")
+        self.tabWidget.addTab(user_profile, "Мой профиль")
 
 
 class LoginWindow(QWidget):
@@ -148,29 +102,30 @@ class LoginWindow(QWidget):
         password_text = self.password_edit.text()
 
         if not login_text:
-            QMessageBox.question(
+            QMessageBox.critical(
                 self, 'Ошибка ввода логина', "Пожалуйста, введите логин",
                 QMessageBox.Ok)
             return
         if not password_text:
-            QMessageBox.question(
+            QMessageBox.critical(
                 self, 'Ошибка ввода пароля', "Пожалуйста, введите пароль",
                 QMessageBox.Ok)
             return
 
-        user_obj = cursor.execute(f"SELECT admin FROM users WHERE username = '{login_text}'"
-                                  f" and password = '{password_text}'").fetchall()
+        user_obj = cursor.execute(f"SELECT id, admin FROM users WHERE username = '{login_text}'"
+                                  f" and password = '{password_text}'").fetchone()
         if user_obj:
-            is_admin = user_obj[0][0]
+            user_id, is_admin = user_obj
             self.clear()
             if is_admin:
                 create_admin_windows()
                 main_admin_window.show()
             else:
                 create_user_window()
+                user_profile.fill(user_id)
                 user_main_window.show()
         else:
-            QMessageBox.question(
+            QMessageBox.critical(
                 self, 'Ошибка входа', "Неравильный логин или пароль",
                 QMessageBox.Ok)
             return
@@ -208,31 +163,31 @@ class RegisterWindow(QWidget):
         password_text_again = self.password_again.text()
 
         if not login_text:
-            QMessageBox.question(
+            QMessageBox.critical(
                 self, 'Ошибка ввода логина', "Пожалуйста, введите логин",
                 QMessageBox.Ok)
             return
         if not password_text or not password_text_again:
-            QMessageBox.question(
+            QMessageBox.critical(
                 self, 'Ошибка ввода пароля', "Пожалуйста, введите пароль и подтвердите его",
                 QMessageBox.Ok)
             return
         if password_text != password_text_again:
-            QMessageBox.question(
+            QMessageBox.critical(
                 self, 'Ошибка ввода пароля', "Пароли не совпадают",
                 QMessageBox.Ok)
             return
 
         user_obj = cursor.execute(f"SELECT username FROM users WHERE username = '{login_text}'").fetchall()
         if user_obj:
-            QMessageBox.question(
+            QMessageBox.critical(
                 self, 'Ошибка ввода пароля', "Такой пользователь уже существует",
                 QMessageBox.Ok)
             return
 
         cursor.execute(f"INSERT INTO USERS(username, password, admin) "
                        f"VALUES('{login_text}', '{password_text}', 0)")
-        QMessageBox.question(
+        QMessageBox.information(
             self, 'Успех', "Успешно создание пользователя!",
             QMessageBox.Ok)
         connection.commit()
@@ -468,6 +423,135 @@ class CreateAfisha(QWidget):
         self.clear_form()
 
 
+class AfishaView(QWidget):
+    def __init__(self):
+        super().__init__()
+        uic.loadUi("film_afisha.ui", self)
+
+    def fill(self, name, genre, description, image):
+        self.setWindowTitle(name)
+        self.img = QPixmap(image)
+        self.img = self.img.scaledToWidth(461)
+        self.img = self.img.scaledToHeight(281)
+        self.pic_label.setPixmap(self.img)
+        self.name_label.setText(name)
+        self.description_label.setText(description)
+        self.genre_label.setText(genre)
+
+
+class UserFilms(QWidget):
+    def __init__(self):
+        super().__init__()
+        uic.loadUi("user_films.ui", self)
+        self.initUI()
+
+    def initUI(self):
+        self.search_button.clicked.connect(self.search)
+        self.afisha_button.clicked.connect(self.watch_afisha)
+        self.search_by_box.addItem("Нет")
+        self.search_by_box.addItem("Кинотеатр")
+        self.search_by_box.addItem("Название")
+        self.search_by_box.addItem("Жанр")
+        self.search_by_box.addItem("Максимальная цена")
+        self.base_query = f"SELECT films.id, films.name, genres.name, films.duration, " \
+                          f"films.datetime, cinemas.name, rooms.id, films.price FROM " \
+                          f"films INNER JOIN genres ON genres.id = films.genre INNER " \
+                          f"JOIN cinemas ON cinemas.id = films.cinema INNER JOIN rooms " \
+                          f"ON rooms.id = films.room"
+        self.query = self.base_query[:]
+        self.order = " ORDER BY films.datetime"
+        self.load_films_data()
+
+    def search(self):
+        search_by = self.search_by_box.currentText()
+        search_text = self.search_edit.text()
+
+        if search_by == 'Нет':
+            self.query = self.base_query[:]
+
+        if search_text:
+            if search_by == "Кинотеатр":
+                self.query = self.base_query + f" WHERE cinemas.name LIKE '%{search_text}%'"
+            elif search_by == "Название":
+                self.query = self.base_query + f" WHERE films.name LIKE '%{search_text}%'"
+            elif search_by == "Жанр":
+                self.query = self.base_query + f" WHERE genres.name LIKE '%{search_text}%'"
+            elif search_by == "Максимальная цена" and search_text.isdigit():
+                self.query = self.base_query + f" WHERE films.price <= {int(search_text)}"
+            self.load_films_data()
+
+    def load_films_data(self):
+        query_result = cursor.execute(self.query + self.order).fetchall()
+
+        if len(query_result):
+            self.films_table_data.setRowCount(len(query_result))
+            self.films_table_data.setColumnCount(len(query_result[0]))
+            titles = ["ИД", "Название фильма", "Жанр", "Продолжительность", "Начало", "Кинотеатр", "Зал", "Цена"]
+            self.films_table_data.setHorizontalHeaderLabels(titles)
+
+            for i, elem in enumerate(query_result):
+                for j, val in enumerate(elem):
+                    self.films_table_data.setItem(i, j, QTableWidgetItem(str(val)))
+            self.films_table_data.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        else:
+            self.clear_table()
+
+    def watch_afisha(self):
+        row = self.films_table_data.currentRow()
+        if row == -1:
+            return
+
+        film_id = int(self.films_table_data.item(row, 0).text())
+        afisha = cursor.execute("SELECT films.name, genres.name, descriptions.description, descriptions.image "
+                                "FROM descriptions "
+                                f"INNER JOIN films ON films.afisha = descriptions.id and films.id = {film_id} "
+                                f"INNER JOIN genres ON genres.id = films.genre").fetchall()
+        if afisha:
+            afisha_view.fill(*afisha[0])
+            afisha_view.show()
+        else:
+            QMessageBox.warning(
+                self, 'Афиша', "На этот фильм еще нет афиши",
+                QMessageBox.Ok)
+
+    def clear_table(self):
+        while self.films_table_data.rowCount():
+            self.films_table_data.removeRow(0)
+
+
+class UserProfile(QWidget):
+    def __init__(self):
+        super().__init__()
+        uic.loadUi("user_profile.ui", self)
+
+    def fill(self, user_id):
+        user_data = cursor.execute(f"SELECT username, total FROM users WHERE id={user_id}").fetchone()
+        self.user_id_edit.setText(str(user_id))
+        self.username_edit.setText(user_data[0])
+        self.total_money_edit.setText(str(user_data[1]))
+        self.load_cheques_data(user_id)
+
+    def load_cheques_data(self, user_id):
+        query_result = cursor.execute(f"SELECT "
+                                      f"cheques.id, cheques.key, films.name, films.datetime "
+                                      f"FROM cheques "
+                                      f"INNER JOIN films ON films.id = cheques.film "
+                                      f"WHERE cheques.user = {user_id}"
+                                      ).fetchall()
+
+        if query_result:
+            self.purchase_table_data.setRowCount(len(query_result))
+            self.purchase_table_data.setColumnCount(len(query_result[0]))
+            titles = ["ID", "Ключ", "Название фильма", "Начало фильма"]
+            self.purchase_table_data.setHorizontalHeaderLabels(titles)
+
+            for i, elem in enumerate(query_result):
+                for j, val in enumerate(elem):
+                    self.purchase_table_data.setItem(i, j, QTableWidgetItem(str(val)))
+                    self.purchase_table_data.item(i, j).setFlags(QtCore.Qt.ItemIsEnabled)
+            self.purchase_table_data.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+
 class AllFilms(QWidget):
     def __init__(self):
         super().__init__()
@@ -503,7 +587,7 @@ class AllFilms(QWidget):
                                       f"INNER JOIN rooms ON rooms.id = films.room "
                                       f"ORDER BY films.name;").fetchall()
 
-        if len(query_result):
+        if query_result:
             self.film_table_data.setRowCount(len(query_result))
             self.film_table_data.setColumnCount(len(query_result[0]))
             titles = ["ИД", "Название фильма", "Жанр", "Продолжительность", "Начало", "Кинотеатр", "Зал", "Цена"]
@@ -557,7 +641,7 @@ class AllGenres(QWidget):
     def load_genre_data(self):
         query_result = cursor.execute(f"SELECT * FROM GENRES").fetchall()
 
-        if len(query_result):
+        if query_result:
             self.genre_table_data.setRowCount(len(query_result))
             self.genre_table_data.setColumnCount(len(query_result[0]))
             titles = ["ИД", "Название жанра"]
@@ -622,7 +706,7 @@ class AllCinemas(QWidget):
     def load_cinema_data(self):
         query_result = cursor.execute(f"SELECT * FROM cinemas").fetchall()
 
-        if len(query_result):
+        if query_result:
             self.cinema_table_data.setRowCount(len(query_result))
             self.cinema_table_data.setColumnCount(len(query_result[0]))
             titles = ["ID", "Имя"]
@@ -677,7 +761,7 @@ class AllRooms(QWidget):
     def load_rooms_data(self):
         query_result = cursor.execute(f"SELECT * FROM rooms").fetchall()
 
-        if len(query_result):
+        if query_result:
             self.room_table_data.setRowCount(len(query_result))
             self.room_table_data.setColumnCount(len(query_result[0]))
             titles = ["ID", "ID кинотеатра", "Число рядов", "Число мест в ряду"]
@@ -750,6 +834,8 @@ if __name__ == "__main__":
     all_films, all_genres = None, None
     all_rooms, all_users = None, None
     main_admin_window, user_main_window = None, None
+    afisha_view, user_films = None, None
+    user_profile = None
     login_window = LoginWindow()
     register_window = RegisterWindow()
     login_window.show()
