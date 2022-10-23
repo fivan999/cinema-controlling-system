@@ -66,9 +66,6 @@ class MainWindow(QMainWindow):
         super().__init__()
 
     def create_menubar(self) -> None:
-        """
-        creates menubar for admin_main_window
-        """
         self.menuBar = QMenuBar(self)
         self.menu = QMenu("Меню", self)
         self.login_action = QAction("Смена пользователя", self)
@@ -829,7 +826,6 @@ if __name__ == "__main__":
     afisha_view, user_films = None, None
     login_window = LoginWindow()
     register_window = RegisterWindow()
-    help(create_table)
     login_window.show()
     sys.exit(app.exec_())
 
