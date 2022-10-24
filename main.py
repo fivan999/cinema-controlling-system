@@ -470,7 +470,7 @@ class RoomView(QWidget):
                                       "FROM seats "
                                       "INNER JOIN rooms ON rooms.id = seats.room "
                                       f"WHERE seats.film = {self.film_id}").fetchall()
-        print(query_result)
+
         self.setWindowTitle(f"Зал {query_result[0][2]}")
         self.first_seat_id = query_result[0][0]
         self.rows, self.cols = query_result[0][3:]
@@ -520,7 +520,7 @@ class RoomView(QWidget):
         cheque_path = f"data/cheques/cheque_{cheque_id}"
 
         with open(cheque_path, "w", encoding="utf-8") as cheque:
-            cheque.write("Чек\n---------------------------------------"
+            cheque.write("Чек\n---------------------------------------\n"
                          f"ID фильма: {self.film_id}\n"
                          f"Время покупки: {datetime}\n"
                          f"Номер чека: {cheque_id}\n"
