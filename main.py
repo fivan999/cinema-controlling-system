@@ -1,13 +1,14 @@
 import shutil
 import sys
-from PyQt5 import uic, QtCore
+from random import randint, choice
+import sqlite3
 import datetime as dt
 
-from PyQt5.QtGui import QPixmap
+from PyQt5 import uic, QtCore
+from PyQt5.QtGui import QPixmap, QCloseEvent
 from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QMessageBox,
                              QTableWidgetItem, QHeaderView, QFileDialog,
-                             QMenu, QMenuBar, QAction, QTableWidget)
-import sqlite3
+                             QMenu, QMenuBar, QAction, QTableWidget, QPushButton)
 
 
 connection = sqlite3.connect("CinemaSystemDatabase.db")
@@ -34,8 +35,8 @@ def create_user_window() -> None:
     """
     global user_main_window, afisha_view, user_films, user_profile
     afisha_view = AfishaView()
-    user_films = UserFilms()
     user_profile = UserProfile()
+    user_films = UserFilms()
     user_main_window = UserMainWindow()
 
 
@@ -245,7 +246,8 @@ class CreateFilm(QWidget):
         self.cinema_id_box.setValue(0)
         self.price_box.setValue(0)
 
-    def check_film(self, room: int, start_time: str) -> bool:
+    @staticmethod
+    def check_film(room: int, start_time: str) -> bool:
         start_time = dt.datetime(*list(map(int, start_time.split())))
         if start_time < dt.datetime.now() + dt.timedelta(days=5):
             return False
@@ -258,7 +260,8 @@ class CreateFilm(QWidget):
 
         return True
 
-    def insert_seats(self, seats: int, film_id: int, room_id: int) -> None:
+    @staticmethod
+    def insert_seats(seats: int, film_id: int, room_id: int) -> None:
         query = "INSERT INTO seats(taken, room, film) VALUES"
         for _ in range(seats):
             query += f" (0, {room_id}, {film_id}), "
@@ -449,6 +452,100 @@ class CreateAfisha(QWidget):
         self.clear_form()
 
 
+class RoomView(QWidget):
+    def __init__(self):
+        super().__init__()
+        uic.loadUi("data/ui/room_with_places.ui", self)
+        self.buy_button.clicked.connect(self.buy_seat)
+        self.film_id, self.price = 0, 0
+        self.cur_row, self.cur_col = -1, -1
+        self.user_id = 0
+        self.first_seat_id = 0
+        self.rows, self.cols = 0, 0
+
+    def fill(self, film_id: int, price: int) -> None:
+        self.user_id = int(user_profile.user_id_edit.text())
+        self.film_id, self.price = film_id, price
+        query_result = cursor.execute("SELECT seats.id, seats.taken, rooms.id, rooms.rows, rooms.cols "
+                                      "FROM seats "
+                                      "INNER JOIN rooms ON rooms.id = seats.room "
+                                      f"WHERE seats.film = {self.film_id}").fetchall()
+        print(query_result)
+        self.setWindowTitle(f"Зал {query_result[0][2]}")
+        self.first_seat_id = query_result[0][0]
+        self.rows, self.cols = query_result[0][3:]
+
+        for row_ind in range(self.rows):
+            for col_ind in range(self.cols):
+                button = QPushButton(self)
+                if not query_result[row_ind * self.cols + col_ind][1]:
+                    button.setStyleSheet("background-color: green")
+                    button.setText(f"{row_ind + 1} {self.cols - col_ind}")
+                    button.clicked.connect(self.take_seat)
+                else:
+                    button.setStyleSheet("background-color: red")
+                self.seats_grid.addWidget(button, row_ind, col_ind)
+
+    def take_seat(self) -> None:
+        self.cur_row, self.cur_col = map(int, self.sender().text().split())
+        self.row_edit.setText(str(self.cur_row))
+        self.col_edit.setText(str(self.cur_col))
+
+    def buy_seat(self) -> None:
+        if self.cur_row >= 0 and self.cur_col >= 0:
+            valid = QMessageBox.question(self, "Билет",
+                                         "Действительно купить этот билет?",
+                                         QMessageBox.Yes, QMessageBox.No)
+
+            if valid == QMessageBox.Yes:
+                cursor.execute(f"UPDATE users SET total=total+{self.price} WHERE "
+                               f"id={self.user_id}")
+                cursor.execute("UPDATE seats SET taken=1 WHERE "
+                               f"id={self.first_seat_id + (self.cur_row - 1) * self.cols + (self.cols - self.cur_col)}")
+                unique_cheque_key = self.generate_random_key()
+                cheque_id = cursor.execute("INSERT INTO cheques(key, user, film) "
+                                           f"VALUES('{unique_cheque_key}', {self.user_id}, "
+                                           f"{self.film_id}) RETURNING id").fetchone()[0]
+                connection.commit()
+                user_profile.load_cheques_data(self.user_id)
+                self.create_text_cheque(cheque_id,
+                                        dt.datetime.now().strftime("%Y.%m.%d %H:%M"),
+                                        unique_cheque_key)
+                self.close()
+
+    def create_text_cheque(self, cheque_id: int, datetime: str, unique_cheque_key: str) -> None:
+        """
+        creates cheques to user's purchase
+        """
+        cheque_path = f"data/cheques/cheque_{cheque_id}"
+
+        with open(cheque_path, "w", encoding="utf-8") as cheque:
+            cheque.write("Чек\n---------------------------------------"
+                         f"ID фильма: {self.film_id}\n"
+                         f"Время покупки: {datetime}\n"
+                         f"Номер чека: {cheque_id}\n"
+                         f"Уникальный ID чека: {unique_cheque_key}\n"
+                         f"---------------------------------------\n"
+                         f"Спасибо за покупку!")
+
+            QMessageBox.warning(self, "Чек",
+                                f"Чек сохранен в файле: {cheque_path}",
+                                QMessageBox.Ok)
+
+    @staticmethod
+    def generate_random_key() -> str:
+        chars = "+-/*!&$#?=@<>abcdefghijklnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+        result = ''.join([choice(chars) for _ in range(10)])
+        return result
+
+    def clear_form(self) -> None:
+        self.row_edit.setText("")
+        self.col_edit.setText("")
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        self.clear_form()
+
+
 class AfishaView(QWidget):
     def __init__(self):
         super().__init__()
@@ -473,8 +570,10 @@ class UserFilms(QWidget):
         self.initUI()
 
     def initUI(self) -> None:
+        self.room = RoomView()
         self.search_button.clicked.connect(self.search)
         self.afisha_button.clicked.connect(self.watch_afisha)
+        self.buy_ticket_button.clicked.connect(self.watch_room)
         self.search_by_box.addItem("Нет")
         self.search_by_box.addItem("Кинотеатр")
         self.search_by_box.addItem("Название")
@@ -498,11 +597,11 @@ class UserFilms(QWidget):
 
         if search_text:
             if search_by == "Кинотеатр":
-                self.query = self.base_query + f" WHERE cinemas.name LIKE '''%{search_text}%'''"
+                self.query = self.base_query + f" WHERE cinemas.name LIKE '%{search_text}%'"
             elif search_by == "Название":
-                self.query = self.base_query + f" WHERE films.name LIKE '''%{search_text}%'''"
+                self.query = self.base_query + f" WHERE films.name LIKE '%{search_text}%'"
             elif search_by == "Жанр":
-                self.query = self.base_query + f" WHERE genres.name LIKE '''%{search_text}%'''"
+                self.query = self.base_query + f" WHERE genres.name LIKE '%{search_text}%'"
             elif search_by == "Максимальная цена" and search_text.isdigit():
                 self.query = self.base_query + f" WHERE films.price <= {int(search_text)}"
             self.load_films_data()
@@ -522,7 +621,8 @@ class UserFilms(QWidget):
             return
 
         film_id = int(self.films_table_data.item(row, 0).text())
-        afisha = cursor.execute("SELECT films.name, genres.name, descriptions.description, descriptions.image "
+        afisha = cursor.execute("SELECT films.id,  films.name, genres.name, descriptions.description, "
+                                "descriptions.image "
                                 "FROM descriptions "
                                 f"INNER JOIN films ON films.afisha = descriptions.id and films.id = {film_id} "
                                 f"INNER JOIN genres ON genres.id = films.genre").fetchall()
@@ -533,6 +633,16 @@ class UserFilms(QWidget):
             QMessageBox.warning(
                 self, 'Афиша', "На этот фильм еще нет афиши",
                 QMessageBox.Ok)
+
+    def watch_room(self):
+        row = self.films_table_data.currentRow()
+        if row == -1:
+            return
+        film_id = int(self.films_table_data.item(row, 0).text())
+        price = int(self.films_table_data.item(row, 7).text())
+
+        self.room.fill(film_id, price)
+        self.room.show()
 
     def clear_table(self) -> None:
         while self.films_table_data.rowCount():
@@ -569,7 +679,7 @@ class AllFilms(QWidget):
         super().__init__()
         uic.loadUi("data/ui/films.ui", self)
         self.setFixedWidth(710)
-        self.create_afisha = CreateAfisha()
+        self.create_afisha_form = CreateAfisha()
         self.initUI()
 
     def initUI(self) -> None:
@@ -598,9 +708,9 @@ class AllFilms(QWidget):
             cursor.execute(f"DELETE FROM descriptions WHERE id={afisha_id}")
             connection.commit()
 
-        self.create_afisha.film_name = film_name
-        self.create_afisha.genre_id = genre_id
-        self.create_afisha.show()
+        self.create_afisha_form.film_name = film_name
+        self.create_afisha_form.genre_id = genre_id
+        self.create_afisha_form.show()
 
     def load_film_data(self) -> None:
         query_result = cursor.execute(f"SELECT "
@@ -622,7 +732,8 @@ class AllFilms(QWidget):
         while self.film_table_data.rowCount() > 0:
             self.film_table_data.removeRow(0)
 
-    def add_film(self) -> None:
+    @staticmethod
+    def add_film() -> None:
         create_film.setWindowTitle("Добавление фильма")
         create_film.show()
 
@@ -637,8 +748,8 @@ class AllFilms(QWidget):
 
         if valid == QMessageBox.Yes:
             film_id = int(self.film_table_data.item(row, 0).text())
-            cursor.execute(f"DELETE FROM films WHERE id={film_id}")
-            cursor.execute(f"DELETE FROM seats WHERE film={film_id}")
+            cursor.executescript(f"DELETE FROM films WHERE id={film_id}; "
+                                 f"DELETE FROM seats WHERE film={film_id}")
             connection.commit()
             self.load_film_data()
 
@@ -696,8 +807,8 @@ class AllGenres(QWidget):
 
         if valid == QMessageBox.Yes:
             genre_id = int(self.genre_table_data.item(row, 0).text())
-            cursor.execute(f"DELETE FROM films WHERE genre={genre_id}")
-            cursor.execute(f"DELETE FROM genres WHERE id={genre_id}")
+            cursor.executescript(f"DELETE FROM films WHERE genre={genre_id}; "
+                                 f"DELETE FROM genres WHERE id={genre_id}")
             connection.commit()
             self.load_genre_data()
             all_films.load_film_data()
@@ -743,9 +854,9 @@ class AllCinemas(QWidget):
 
         if valid == QMessageBox.Yes:
             cinema_id = int(self.cinema_table_data.item(row, 0).text())
-            cursor.execute(f"DELETE FROM films WHERE cinema={cinema_id}")
-            cursor.execute(f"DELETE FROM rooms WHERE cinema={cinema_id}")
-            cursor.execute(f"DELETE FROM cinemas WHERE id={cinema_id}")
+            cursor.executescript(f"DELETE FROM films WHERE cinema={cinema_id}; "
+                                 f"DELETE FROM rooms WHERE cinema={cinema_id}; "
+                                 f"DELETE FROM cinemas WHERE id={cinema_id}")
             connection.commit()
             self.load_cinema_data()
             all_films.load_film_data()
@@ -792,9 +903,9 @@ class AllRooms(QWidget):
 
         if valid == QMessageBox.Yes:
             room_id = int(self.room_table_data.item(row, 0).text())
-            cursor.execute(f"DELETE FROM films WHERE room={room_id}")
-            cursor.execute(f"DELETE FROM seats WHERE room={room_id}")
-            cursor.execute(f"DELETE FROM rooms WHERE id={room_id}")
+            cursor.executescript(f"DELETE FROM films WHERE room={room_id}; "
+                                 f"DELETE FROM seats WHERE room={room_id}; "
+                                 f"DELETE FROM rooms WHERE id={room_id}")
             connection.commit()
             self.load_rooms_data()
             all_films.load_film_data()
@@ -828,4 +939,3 @@ if __name__ == "__main__":
     register_window = RegisterWindow()
     login_window.show()
     sys.exit(app.exec_())
-
