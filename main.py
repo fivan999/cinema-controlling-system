@@ -1,8 +1,12 @@
+import csv
+import os
 import shutil
 import sys
-from random import randint, choice
+from collections import defaultdict
+from random import choice
 import sqlite3
 import datetime as dt
+import matplotlib.pyplot as plt
 
 from PyQt5 import uic, QtCore
 from PyQt5.QtGui import QPixmap, QCloseEvent
@@ -247,15 +251,19 @@ class CreateFilm(QWidget):
         self.price_box.setValue(0)
 
     @staticmethod
-    def check_film(room: int, start_time: str) -> bool:
-        start_time = dt.datetime(*list(map(int, start_time.split())))
+    def check_film(room: int, start_time: str, film_duration: int) -> bool:
+        start_time = dt.datetime(*map(int, start_time.split()))
         if start_time < dt.datetime.now() + dt.timedelta(days=5):
             return False
 
         all_times = cursor.execute(f"SELECT datetime, duration FROM films WHERE room={room}").fetchall()
         for item in all_times:
             time, duration = item
-            if start_time < dt.datetime(*list(map(int, time.split()))) + dt.timedelta(minutes=(25 + duration)):
+            item_start_time = dt.datetime(*map(int, time.split()))
+            item_end_time = item_start_time + dt.timedelta(minutes=(25 + duration))
+            end_time = start_time + dt.timedelta(minutes=(25 + film_duration))
+            if end_time < item_start_time and start_time > item_end_time:
+                print(item)
                 return False
 
         return True
@@ -263,7 +271,7 @@ class CreateFilm(QWidget):
     @staticmethod
     def insert_seats(seats: int, film_id: int, room_id: int) -> None:
         query = "INSERT INTO seats(taken, room, film) VALUES"
-        for _ in range(seats):
+        for _ in range(seats + 1):
             query += f" (0, {room_id}, {film_id}), "
         cursor.execute(query[:-2])
 
@@ -277,14 +285,15 @@ class CreateFilm(QWidget):
         cinema_id = self.cinema_id_box.value()
         price = self.price_box.value()
 
-        if name and duration and room_id and cinema_id and self.check_film(room_id, start_time):
+        if name and duration and room_id and cinema_id and self.check_film(room_id, start_time, duration):
             genre_id = cursor.execute(f"SELECT id FROM genres WHERE name='{genre}'").fetchone()[0]
             rows_and_cols = cursor.execute(f"SELECT rows, cols FROM rooms WHERE id={room_id}").fetchone()
             rows_cnt, cols_cnt = rows_and_cols
 
-            film_id = cursor.execute(f"INSERT INTO films (name, genre, duration, datetime, room, cinema, price) "
+            film_id = cursor.execute(f"INSERT INTO films (name, genre, duration, datetime, room, "
+                                     f"cinema, price, can_buy) "
                                      f"VALUES(?, {genre_id}, {duration}, "
-                                     f"?, {room_id}, {cinema_id}, {price}) RETURNING id",
+                                     f"?, {room_id}, {cinema_id}, {price}, 1) RETURNING id",
                                      (name, start_time)).fetchone()[0]
             self.insert_seats(rows_cnt * cols_cnt, film_id, room_id)
 
@@ -452,6 +461,97 @@ class CreateAfisha(QWidget):
         self.clear_form()
 
 
+class CreateReport(QWidget):
+    def __init__(self):
+        super().__init__()
+        uic.loadUi("data/ui/create_report.ui", self)
+        self.setWindowTitle("Отчет")
+        self.initUI()
+
+    def initUI(self):
+        self.dir_name = None
+        self.save_report_button.clicked.connect(self.create_report_query)
+        connection.create_function("CHECK_DATETIME", 1, self.check_data)
+        self.base_query = "SELECT films.price, films.datetime " \
+                          "FROM films " \
+                          "INNER JOIN cheques ON cheques.film=films.id " \
+                          "WHERE CHECK_DATETIME(films.datetime) = 1 "
+        self.create_months_dicts()
+
+    def create_months_dicts(self) -> None:
+        self.num_to_month = {1: "Январь", 2: "Февраль", 3: "Март",
+                             4: "Апрель", 5: "Май", 6: "Июнь",
+                             7: "Июль", 8: "Август", 9: "Сентябрь",
+                             10: "Октябрь", 11: "Ноябрь", 12: "Декабрь"}
+        self.month_with_sums = defaultdict(lambda: 0)
+
+    @staticmethod
+    def check_data(datetime: str) -> int:
+        """
+        cheches if film's year is equal to current year
+        """
+        if dt.datetime(*map(int, datetime.split())).year == dt.datetime.now().year:
+            return 1
+        return 0
+
+    def create_report_query(self) -> None:
+        cinemas = self.cinema_labels.text().lower()
+        query = self.base_query
+        query_true = False
+
+        if cinemas != "все":
+            try:
+                cinemas = list(map(int, cinemas.split()))
+            except Exception as e:
+                self.feedback_label.setText("Неверно заполнена форма")
+                return
+            query = self.base_query + 'and films.cinema IN (' + ', '.join([str(i) for i in cinemas]) + ')'
+            query_true = True
+        if cinemas != "все" and not query_true:
+            self.feedback_label.setText("Неверно заполнена форма")
+            return
+
+        query_result = cursor.execute(query).fetchall()
+        self.create_report(query_result)
+        self.close()
+
+    def create_report(self, query_result: list) -> None:
+        for price, datetime in query_result:
+            month = dt.datetime(*map(int, datetime.split())).month
+            self.month_with_sums[self.num_to_month[month]] += price
+
+        if not any(self.month_with_sums.values()):
+            QMessageBox.warning(self, "Отчет", "Покупок в этом кинотеатре не было",
+                                QMessageBox.Ok)
+            return
+
+        self.create_csv_table()
+        self.create_circle_graphic()
+        self.create_months_dicts()
+        QMessageBox.warning(self, "Отчет", f"Отчет находится в: {self.dir_name}",
+                            QMessageBox.Ok)
+
+    def create_csv_table(self) -> None:
+        self.dir_name = 'data/reports/report_' + dt.datetime.now().strftime("%Y_%m_%d_%H_%M_%SS") + '/'
+        os.makedirs(self.dir_name)
+        with open(self.dir_name + 'table.csv', "w", newline='', encoding="utf-8") as report_csv:
+            writer = csv.writer(report_csv, delimiter=';', quotechar='"',
+                                quoting=csv.QUOTE_MINIMAL)
+            writer.writerow(["Месяц", "Доход"])
+            for month in self.num_to_month.values():
+                row = [month, self.month_with_sums[month]]
+                writer.writerow(row)
+
+    def create_circle_graphic(self) -> None:
+        labels = [month for month in self.num_to_month.values() if self.month_with_sums[month]]
+        values = [self.month_with_sums[month] for month in labels]
+        figure, ax = plt.subplots()
+        ax.pie(values, labels=labels, autopct='%1.1f%%')
+        ax.axis("equal")
+        ax.legend(loc='upper left', bbox_to_anchor=(0.87, 1.0))
+        plt.savefig(self.dir_name + 'graphic.png')
+
+
 class RoomView(QWidget):
     def __init__(self):
         super().__init__()
@@ -480,7 +580,7 @@ class RoomView(QWidget):
                 button = QPushButton(self)
                 if not query_result[row_ind * self.cols + col_ind][1]:
                     button.setStyleSheet("background-color: green")
-                    button.setText(f"{row_ind + 1} {self.cols - col_ind}")
+                    button.setText(f"{row_ind + 1}   {self.cols - col_ind}")
                     button.clicked.connect(self.take_seat)
                 else:
                     button.setStyleSheet("background-color: red")
@@ -525,6 +625,7 @@ class RoomView(QWidget):
                          f"Время покупки: {datetime}\n"
                          f"Номер чека: {cheque_id}\n"
                          f"Уникальный ID чека: {unique_cheque_key}\n"
+                         f"Ряд: {self.cur_row}, место: {self.cur_col}\n"
                          f"---------------------------------------\n"
                          f"Спасибо за покупку!")
 
@@ -583,7 +684,7 @@ class UserFilms(QWidget):
                           f"films.datetime, cinemas.name, rooms.id, films.price FROM " \
                           f"films INNER JOIN genres ON genres.id = films.genre INNER " \
                           f"JOIN cinemas ON cinemas.id = films.cinema INNER JOIN rooms " \
-                          f"ON rooms.id = films.room"
+                          f"ON rooms.id = films.room WHERE films.can_buy = 1 "
         self.query = self.base_query[:]
         self.order = " ORDER BY films.datetime"
         self.load_films_data()
@@ -621,13 +722,13 @@ class UserFilms(QWidget):
             return
 
         film_id = int(self.films_table_data.item(row, 0).text())
-        afisha = cursor.execute("SELECT films.id,  films.name, genres.name, descriptions.description, "
+        afisha = cursor.execute("SELECT films.name, genres.name, descriptions.description, "
                                 "descriptions.image "
                                 "FROM descriptions "
                                 f"INNER JOIN films ON films.afisha = descriptions.id and films.id = {film_id} "
-                                f"INNER JOIN genres ON genres.id = films.genre").fetchall()
+                                f"INNER JOIN genres ON genres.id = films.genre").fetchone()
         if afisha:
-            afisha_view.fill(*afisha[0])
+            afisha_view.fill(*afisha)
             afisha_view.show()
         else:
             QMessageBox.warning(
@@ -720,6 +821,7 @@ class AllFilms(QWidget):
                                       f"INNER JOIN genres ON genres.id = films.genre "
                                       f"INNER JOIN cinemas ON cinemas.id = films.cinema "
                                       f"INNER JOIN rooms ON rooms.id = films.room "
+                                      f"WHERE films.can_buy = 1 "
                                       f"ORDER BY films.name;").fetchall()
 
         if query_result:
@@ -748,7 +850,7 @@ class AllFilms(QWidget):
 
         if valid == QMessageBox.Yes:
             film_id = int(self.film_table_data.item(row, 0).text())
-            cursor.executescript(f"DELETE FROM films WHERE id={film_id}; "
+            cursor.executescript(f"UPDATE films SET can_buy = 0 WHERE id={film_id}; "
                                  f"DELETE FROM seats WHERE film={film_id}")
             connection.commit()
             self.load_film_data()
@@ -819,13 +921,18 @@ class AllCinemas(QWidget):
         super().__init__()
         uic.loadUi("data/ui/cinemas.ui", self)
         self.create_cinema = CreateCinema()
+        self.report = CreateReport()
         self.setFixedWidth(711)
         self.initUI()
 
     def initUI(self) -> None:
         self.add_cinema_button.clicked.connect(self.add_cinema)
         self.delete_cinema_button.clicked.connect(self.delete_cinema)
+        self.report_button.clicked.connect(self.create_report)
         self.load_cinema_data()
+
+    def create_report(self):
+        self.report.show()
 
     def load_cinema_data(self) -> None:
         query_result = cursor.execute(f"SELECT * FROM cinemas").fetchall()

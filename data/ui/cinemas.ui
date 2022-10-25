@@ -49,6 +49,19 @@
     <string>Удалить кинотеатр</string>
    </property>
   </widget>
+  <widget class="QPushButton" name="report_button">
+   <property name="geometry">
+    <rect>
+     <x>270</x>
+     <y>10</y>
+     <width>121</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Создать отчет</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>
