@@ -7,12 +7,14 @@ from random import choice
 import sqlite3
 import datetime as dt
 import matplotlib.pyplot as plt
+import hashlib
 
-from PyQt5 import uic, QtCore
 from PyQt5.QtGui import QPixmap, QCloseEvent
 from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QMessageBox,
                              QTableWidgetItem, QHeaderView, QFileDialog,
                              QMenu, QMenuBar, QAction, QTableWidget, QPushButton)
+
+from data.py_files.ui_code import *
 
 
 connection = sqlite3.connect("CinemaSystemDatabase.db")
@@ -48,10 +50,6 @@ def create_table(titles: list, query_result: list, table: QTableWidget, enable: 
     """
     fills table with taken column titles,
     using data from query_result
-    :param titles: list
-    :param query_result: list
-    :param table: QTableWidget
-    :param enable: bool
     """
     table.setRowCount(len(query_result))
     table.setColumnCount(len(query_result[0]))
@@ -63,7 +61,7 @@ def create_table(titles: list, query_result: list, table: QTableWidget, enable: 
             table.setItem(i, j, QTableWidgetItem(str(val)))
             if enable:
                 table.item(i, j).setFlags(QtCore.Qt.ItemIsEnabled)
-    table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+    table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  # to set columns equal width
 
 
 class MainWindow(QMainWindow):
@@ -84,10 +82,10 @@ class MainWindow(QMainWindow):
         self.close()
 
 
-class AdminMainWindow(MainWindow):
+class AdminMainWindow(MainWindow, Ui_AdminMainWindow):
     def __init__(self):
         super().__init__()
-        uic.loadUi("data/ui/admin_main_window.ui", self)
+        self.setupUi(self)
         self.setFixedWidth(710)
         self.setWindowTitle("Администрирование")
         self.create_tab_widget()
@@ -101,10 +99,10 @@ class AdminMainWindow(MainWindow):
         self.tabWidget.addTab(AllUsers(), "Пользователи")
 
 
-class UserMainWindow(MainWindow):
+class UserMainWindow(MainWindow, Ui_UserMainWindow):
     def __init__(self):
         super().__init__()
-        uic.loadUi("data/ui/user_main_window.ui", self)
+        self.setupUi(self)
         self.setWindowTitle("Пользователь")
         self.create_tab_widget()
         self.create_menubar()
@@ -114,10 +112,10 @@ class UserMainWindow(MainWindow):
         self.tabWidget.addTab(user_profile, "Мой профиль")
 
 
-class LoginWindow(QWidget):
+class LoginWindow(QWidget, Ui_Login):
     def __init__(self):
         super().__init__()
-        uic.loadUi("data/ui/login.ui", self)
+        self.setupUi(self)
         self.setWindowTitle("Вход")
         self.initUI()
 
@@ -140,8 +138,9 @@ class LoginWindow(QWidget):
                 QMessageBox.Ok)
             return
 
+        password_text = hashlib.sha256(password_text.encode('utf-8')).hexdigest()
         user_obj = cursor.execute(f"SELECT id, admin FROM users WHERE username = ?"
-                                  f" and password=?", (login_text, password_text)).fetchone()
+                                  f" and password='{password_text}'", (login_text, )).fetchone()
         if user_obj:
             user_id, is_admin = user_obj
             self.clear()
@@ -169,10 +168,10 @@ class LoginWindow(QWidget):
         self.password_edit.clear()
 
 
-class RegisterWindow(QWidget):
+class RegisterWindow(QWidget, Ui_Register):
     def __init__(self):
         super().__init__()
-        uic.loadUi("data/ui/register.ui", self)
+        self.setupUi(self)
         self.setWindowTitle("Регистрация")
         self.initUI()
 
@@ -210,10 +209,11 @@ class RegisterWindow(QWidget):
                                   (login_text, )).fetchall()
         if user_obj:
             QMessageBox.critical(
-                self, 'Ошибка ввода пароля', "Такой пользователь уже существует",
+                self, 'Ошибка регистрации', "Такой пользователь уже существует",
                 QMessageBox.Ok)
             return
 
+        password_text = hashlib.sha256(password_text.encode('utf-8')).hexdigest()
         cursor.execute(f"INSERT INTO USERS(username, password, admin) "
                        f"VALUES(?, ?, 0)",
                        (login_text, password_text))
@@ -229,10 +229,10 @@ class RegisterWindow(QWidget):
         self.password_again.clear()
 
 
-class CreateFilm(QWidget):
+class CreateFilm(QWidget, Ui_CreateFilm):
     def __init__(self):
         super().__init__()
-        uic.loadUi("data/ui/create_film.ui", self)
+        self.setupUi(self)
         self.setFixedWidth(261)
         self.save_button.clicked.connect(self.create_film)
         self.create_genres_box()
@@ -307,10 +307,10 @@ class CreateFilm(QWidget):
         self.clear_form()
 
 
-class CreateGenre(QWidget):
+class CreateGenre(QWidget, Ui_CreateGenreOrCinema):
     def __init__(self):
         super().__init__()
-        uic.loadUi("data/ui/create_genre_or_cinema.ui", self)
+        self.setupUi(self)
         self.save_button.clicked.connect(self.define_action)
         self.editing = False
         self.id = None
@@ -360,10 +360,10 @@ class CreateGenre(QWidget):
         self.clear_form()
 
 
-class CreateCinema(QWidget):
+class CreateCinema(QWidget, Ui_CreateGenreOrCinema):
     def __init__(self):
         super().__init__()
-        uic.loadUi("data/ui/create_genre_or_cinema.ui", self)
+        self.setupUi(self)
         self.setWindowTitle("Добавление кинотеатра")
         self.save_button.clicked.connect(self.create_cinema)
 
@@ -386,10 +386,10 @@ class CreateCinema(QWidget):
         self.clear_form()
 
 
-class CreateRoom(QWidget):
+class CreateRoom(QWidget, Ui_CreateRoom):
     def __init__(self):
         super().__init__()
-        uic.loadUi("data/ui/create_room.ui", self)
+        self.setupUi(self)
         self.setWindowTitle("Добавление кинозала")
         self.save_button.clicked.connect(self.create_room)
 
@@ -417,10 +417,10 @@ class CreateRoom(QWidget):
         self.clear_form()
 
 
-class CreateAfisha(QWidget):
+class CreateAfisha(QWidget, Ui_CreateAfisha):
     def __init__(self):
         super().__init__()
-        uic.loadUi("data/ui/create_afisha.ui", self)
+        self.setupUi(self)
         self.setWindowTitle("Создание афиши")
         self.filename = None
         self.genre_id, self.film_name = None, None
@@ -461,10 +461,10 @@ class CreateAfisha(QWidget):
         self.clear_form()
 
 
-class CreateReport(QWidget):
+class CreateReport(QWidget, Ui_CreateReport):
     def __init__(self):
         super().__init__()
-        uic.loadUi("data/ui/create_report.ui", self)
+        self.setupUi(self)
         self.setWindowTitle("Отчет")
         self.initUI()
 
@@ -502,7 +502,7 @@ class CreateReport(QWidget):
         if cinemas != "все":
             try:
                 cinemas = list(map(int, cinemas.split()))
-            except Exception as e:
+            except Exception:
                 self.feedback_label.setText("Неверно заполнена форма")
                 return
             query = self.base_query + 'and films.cinema IN (' + ', '.join([str(i) for i in cinemas]) + ')'
@@ -552,10 +552,10 @@ class CreateReport(QWidget):
         plt.savefig(self.dir_name + 'graphic.png')
 
 
-class RoomView(QWidget):
+class RoomView(QWidget, Ui_RoomView):
     def __init__(self):
         super().__init__()
-        uic.loadUi("data/ui/room_with_places.ui", self)
+        self.setupUi(self)
         self.buy_button.clicked.connect(self.buy_seat)
         self.film_id, self.price = 0, 0
         self.cur_row, self.cur_col = -1, -1
@@ -647,10 +647,10 @@ class RoomView(QWidget):
         self.clear_form()
 
 
-class AfishaView(QWidget):
+class AfishaView(QWidget, Ui_AfishaView):
     def __init__(self):
         super().__init__()
-        uic.loadUi("data/ui/film_afisha.ui", self)
+        self.setupUi(self)
 
     def fill(self, name: str, genre: str, description: str, image: str) -> None:
         self.setWindowTitle(name)
@@ -664,10 +664,10 @@ class AfishaView(QWidget):
         self.genre_label.setText(genre)
 
 
-class UserFilms(QWidget):
+class UserFilms(QWidget, Ui_UserFilms):
     def __init__(self):
         super().__init__()
-        uic.loadUi("data/ui/user_films.ui", self)
+        self.setupUi(self)
         self.initUI()
 
     def initUI(self) -> None:
@@ -698,13 +698,13 @@ class UserFilms(QWidget):
 
         if search_text:
             if search_by == "Кинотеатр":
-                self.query = self.base_query + f" WHERE cinemas.name LIKE '%{search_text}%'"
+                self.query = self.base_query + f" and cinemas.name LIKE '%{search_text}%'"
             elif search_by == "Название":
-                self.query = self.base_query + f" WHERE films.name LIKE '%{search_text}%'"
+                self.query = self.base_query + f" and films.name LIKE '%{search_text}%'"
             elif search_by == "Жанр":
-                self.query = self.base_query + f" WHERE genres.name LIKE '%{search_text}%'"
+                self.query = self.base_query + f" and genres.name LIKE '%{search_text}%'"
             elif search_by == "Максимальная цена" and search_text.isdigit():
-                self.query = self.base_query + f" WHERE films.price <= {int(search_text)}"
+                self.query = self.base_query + f" and films.price <= {int(search_text)}"
             self.load_films_data()
 
     def load_films_data(self) -> None:
@@ -750,10 +750,10 @@ class UserFilms(QWidget):
             self.films_table_data.removeRow(0)
 
 
-class UserProfile(QWidget):
+class UserProfile(QWidget, Ui_UserProfile):
     def __init__(self):
         super().__init__()
-        uic.loadUi("data/ui/user_profile.ui", self)
+        self.setupUi(self)
 
     def fill(self, user_id: int) -> None:
         user_data = cursor.execute(f"SELECT username, total FROM users WHERE id={user_id}").fetchone()
@@ -775,10 +775,10 @@ class UserProfile(QWidget):
             create_table(titles, query_result, self.purchase_table_data, enable=True)
 
 
-class AllFilms(QWidget):
+class AllFilms(QWidget, Ui_AllFilms):
     def __init__(self):
         super().__init__()
-        uic.loadUi("data/ui/films.ui", self)
+        self.setupUi(self)
         self.setFixedWidth(710)
         self.create_afisha_form = CreateAfisha()
         self.initUI()
@@ -856,10 +856,10 @@ class AllFilms(QWidget):
             self.load_film_data()
 
 
-class AllGenres(QWidget):
+class AllGenres(QWidget, Ui_AllGenres):
     def __init__(self):
         super().__init__()
-        uic.loadUi("data/ui/genres.ui", self)
+        self.setupUi(self)
         self.create_genre = CreateGenre()
         self.setFixedWidth(710)
         self.initUI()
@@ -916,10 +916,10 @@ class AllGenres(QWidget):
             all_films.load_film_data()
 
 
-class AllCinemas(QWidget):
+class AllCinemas(QWidget, Ui_AllCinemas):
     def __init__(self):
         super().__init__()
-        uic.loadUi("data/ui/cinemas.ui", self)
+        self.setupUi(self)
         self.create_cinema = CreateCinema()
         self.report = CreateReport()
         self.setFixedWidth(711)
@@ -970,10 +970,10 @@ class AllCinemas(QWidget):
             all_rooms.load_rooms_data()
 
 
-class AllRooms(QWidget):
+class AllRooms(QWidget, Ui_AllRooms):
     def __init__(self):
         super().__init__()
-        uic.loadUi("data/ui/rooms.ui", self)
+        self.setupUi(self)
         self.create_room = CreateRoom()
         self.setFixedWidth(711)
         self.initUI()
@@ -1018,10 +1018,10 @@ class AllRooms(QWidget):
             all_films.load_film_data()
 
 
-class AllUsers(QWidget):
+class AllUsers(QWidget, Ui_AllUsers):
     def __init__(self):
         super().__init__()
-        uic.loadUi("data/ui/users.ui", self)
+        self.setupUi(self)
         self.load_users_data()
 
     def load_users_data(self) -> None:
@@ -1035,13 +1035,13 @@ def except_hook(cls, exception, traceback):
 
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    sys.excepthook = except_hook
     user_profile, all_cinemas = None, None
     all_films, all_genres = None, None
     all_rooms, create_film = None, None
     main_admin_window, user_main_window = None, None
     afisha_view, user_films = None, None
+    app = QApplication(sys.argv)
+    sys.excepthook = except_hook
     login_window = LoginWindow()
     register_window = RegisterWindow()
     login_window.show()
