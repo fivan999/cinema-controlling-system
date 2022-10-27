@@ -442,8 +442,8 @@ class CreateAfisha(QWidget, Ui_CreateAfisha):
         description = self.description_edit.toPlainText()
         if description and self.filename:
             fname = self.check_filename()
-            afisha_id = cursor.execute(f"INSERT INTO descriptions(image, description) "
-                                       f"VALUES(?, ?) RETURNING id", (fname, description)).fetchone()[0]
+            afisha_id = cursor.execute("INSERT INTO descriptions(image, description) "
+                                       "VALUES(?, ?) RETURNING id", (fname, description)).fetchone()[0]
             cursor.execute(f"UPDATE films SET afisha={afisha_id} WHERE "
                            f"name=? and genre={self.genre_id}", (self.film_name, ))
             connection.commit()
