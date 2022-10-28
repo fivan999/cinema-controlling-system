@@ -8,12 +8,10 @@ import sqlite3
 import datetime as dt
 import matplotlib.pyplot as plt
 import hashlib
-
-from PyQt5 import uic
 from PyQt5.QtGui import QPixmap, QCloseEvent
 from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QMessageBox,
                              QTableWidgetItem, QHeaderView, QFileDialog,
-                             QMenu, QMenuBar, QAction, QTableWidget, QPushButton)
+                             QMenu, QMenuBar, QAction, QTableWidget, QPushButton, QInputDialog)
 
 from data.py_files.ui_code import *
 
@@ -306,87 +304,6 @@ class CreateFilm(QWidget, Ui_CreateFilm):
 
             connection.commit()
             all_films.load_film_data()
-            self.close()
-        else:
-            self.feedback_label.setText("Неверно заполнена форма")
-
-    def closeEvent(self, event) -> None:
-        self.clear_form()
-
-
-class CreateGenre(QWidget, Ui_CreateGenreOrCinema):
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)
-        self.setFixedSize(259, 76)
-        self.save_button.clicked.connect(self.define_action)
-        self.editing = False
-        self.id = None
-
-    def clear_form(self) -> None:
-        self.name_edit.clear()
-        self.feedback_label.clear()
-
-    def define_action(self) -> None:
-        if self.editing:
-            self.update_genre()
-            self.editing = False
-        else:
-            self.create_genre()
-
-    def update_genre(self) -> None:
-        self.feedback_label.setText("")
-        title = self.name_edit.text()
-
-        if title:
-            cursor.execute(f"UPDATE genres SET name = ? "           
-                           f"WHERE id={self.id}", (title, ))
-            connection.commit()
-            all_genres.load_genre_data()
-            create_film.create_genres_box()
-            self.close()
-        else:
-            self.feedback_label.setText("Неверно заполнена форма")
-
-    def create_genre(self) -> None:
-        self.feedback_label.setText("")
-        title = self.name_edit.text()
-
-        if title:
-            cursor.execute(f"INSERT INTO genres(name) "
-                           f"VALUES (?)", (title, ))
-            connection.commit()
-            all_genres.load_genre_data()
-            self.close()
-        else:
-            self.feedback_label.setText("Неверно заполнена форма")
-
-    def fill_data(self, title: str) -> None:
-        self.name_edit.setText(title)
-
-    def closeEvent(self, event) -> None:
-        self.clear_form()
-
-
-class CreateCinema(QWidget, Ui_CreateGenreOrCinema):
-    def __init__(self):
-        super().__init__()
-        self.setupUi(self)
-        self.setFixedSize(259, 76)
-        self.setWindowTitle("Создание кинотеатра")
-        self.save_button.clicked.connect(self.create_cinema)
-
-    def clear_form(self) -> None:
-        self.name_edit.clear()
-        self.feedback_label.clear()
-
-    def create_cinema(self) -> None:
-        name = self.name_edit.text()
-        if name:
-            cursor.execute(f"INSERT INTO cinemas(name) "
-                           f"VALUES (?)", (name, ))
-            connection.commit()
-            all_cinemas.load_cinema_data()
             self.close()
         else:
             self.feedback_label.setText("Неверно заполнена форма")
@@ -943,7 +860,6 @@ class AllGenres(QWidget, Ui_AllGenres):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.create_genre = CreateGenre()
         self.setFixedWidth(710)
         self.initUI()
 
@@ -967,19 +883,34 @@ class AllGenres(QWidget, Ui_AllGenres):
             self.genre_table_data.removeRow(0)
 
     def add_genre(self) -> None:
-        self.create_genre.setWindowTitle("Добавление жанра")
-        self.create_genre.show()
+        name, ok_pressed = QInputDialog.getText(self, "Жанр",
+                                                "Введите имя нового жанра")
+        if ok_pressed:
+            if name:
+                cursor.execute(f"INSERT INTO genres(name) "
+                               f"VALUES (?)", (name,))
+                connection.commit()
+                self.load_genre_data()
+            else:
+                QMessageBox.critical(self, "Ошибка",
+                                     "Неверно заполнена форма")
 
     def change_genre(self) -> None:
         row = self.genre_table_data.currentRow()
 
         if row >= 0:
-            title = self.genre_table_data.item(row, 1).text()
-            self.create_genre.fill_data(title)
-            self.create_genre.editing = True
-            self.create_genre.id = int(self.genre_table_data.item(row, 0).text())
-            self.create_genre.setWindowTitle("Изменение жанра")
-            self.create_genre.show()
+            name, ok_pressed = QInputDialog.getText(self, "Жанр",
+                                                    "Введите имя нового жанра")
+            if ok_pressed:
+                if name:
+                    cursor.execute(f"UPDATE genres SET name=? "
+                                   f"WHERE id=?", (name, int(self.genre_table_data.item(row, 0).text())))
+                    connection.commit()
+                    self.load_genre_data()
+                    create_film.create_genres_box()
+                else:
+                    QMessageBox.critical(self, "Ошибка",
+                                         "Неверно заполнена форма")
 
     def delete_genre(self) -> None:
         row = self.genre_table_data.currentRow()
@@ -1003,7 +934,6 @@ class AllCinemas(QWidget, Ui_AllCinemas):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.create_cinema = CreateCinema()
         self.report = CreateReport()
         self.setFixedWidth(711)
         self.initUI()
@@ -1027,7 +957,17 @@ class AllCinemas(QWidget, Ui_AllCinemas):
             self.clear_table()
 
     def add_cinema(self) -> None:
-        self.create_cinema.show()
+        name, ok_pressed = QInputDialog.getText(self, "Кинотеатр",
+                                                "Введите имя нового кинотеатра")
+        if ok_pressed:
+            if name:
+                cursor.execute(f"INSERT INTO cinemas(name) "
+                               f"VALUES (?)", (name,))
+                connection.commit()
+                self.load_cinema_data()
+            else:
+                QMessageBox.critical(self, "Ошибка",
+                                     "Неверно заполнена форма")
 
     def clear_table(self) -> None:
         while self.cinema_table_data.rowCount() > 0:
@@ -1058,7 +998,6 @@ class AllRooms(QWidget, Ui_AllRooms):
         super().__init__()
         self.setupUi(self)
         self.create_room = CreateRoom()
-        self.setFixedWidth(711)
         self.initUI()
 
     def initUI(self) -> None:

@@ -161,34 +161,6 @@ class Ui_CreateFilm(object):
         self.label_8.setText(_translate("Form", "Цена:"))
 
 
-class Ui_CreateGenreOrCinema(object):
-    def setupUi(self, Form):
-        Form.setObjectName("Form")
-        Form.resize(259, 76)
-        self.label = QtWidgets.QLabel(Form)
-        self.label.setGeometry(QtCore.QRect(10, 10, 71, 16))
-        self.label.setObjectName("label")
-        self.name_edit = QtWidgets.QLineEdit(Form)
-        self.name_edit.setGeometry(QtCore.QRect(70, 10, 181, 20))
-        self.name_edit.setObjectName("name_edit")
-        self.save_button = QtWidgets.QPushButton(Form)
-        self.save_button.setGeometry(QtCore.QRect(160, 40, 91, 23))
-        self.save_button.setObjectName("save_button")
-        self.feedback_label = QtWidgets.QLabel(Form)
-        self.feedback_label.setGeometry(QtCore.QRect(10, 40, 141, 21))
-        self.feedback_label.setText("")
-        self.feedback_label.setObjectName("feedback_label")
-
-        self.retranslateUi(Form)
-        QtCore.QMetaObject.connectSlotsByName(Form)
-
-    def retranslateUi(self, Form):
-        _translate = QtCore.QCoreApplication.translate
-        Form.setWindowTitle(_translate("Form", "Form"))
-        self.label.setText(_translate("Form", "Название:"))
-        self.save_button.setText(_translate("Form", "Сохранить"))
-
-
 class Ui_CreateReport(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
