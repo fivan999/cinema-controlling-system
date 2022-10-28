@@ -9,6 +9,7 @@ import datetime as dt
 import matplotlib.pyplot as plt
 import hashlib
 
+from PyQt5 import uic
 from PyQt5.QtGui import QPixmap, QCloseEvent
 from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QMessageBox,
                              QTableWidgetItem, QHeaderView, QFileDialog,
@@ -21,17 +22,25 @@ connection = sqlite3.connect("CinemaSystemDatabase.db")
 cursor = connection.cursor()
 
 
+if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
+    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
+
+if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
+    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
+
+
 def create_admin_windows() -> None:
     """
     creates nessesary windows for admin
     """
     global all_films, all_cinemas, all_genres, \
-        all_rooms, main_admin_window, create_film
+        all_rooms, main_admin_window, create_film, all_reports
     all_cinemas = AllCinemas()
     all_films = AllFilms()
     all_genres = AllGenres()
     all_rooms = AllRooms()
     create_film = CreateFilm()
+    all_reports = AllReports()
     main_admin_window = AdminMainWindow()
 
 
@@ -87,7 +96,6 @@ class AdminMainWindow(MainWindow, Ui_AdminMainWindow):
         super().__init__()
         self.setupUi(self)
         self.setFixedWidth(710)
-        self.setWindowTitle("Администрирование")
         self.create_tab_widget()
         self.create_menubar()
 
@@ -97,13 +105,13 @@ class AdminMainWindow(MainWindow, Ui_AdminMainWindow):
         self.tabWidget.addTab(all_films, "Фильмы")
         self.tabWidget.addTab(all_genres, "Жанры")
         self.tabWidget.addTab(AllUsers(), "Пользователи")
+        self.tabWidget.addTab(all_reports, "Отчеты")
 
 
 class UserMainWindow(MainWindow, Ui_UserMainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.setWindowTitle("Пользователь")
         self.create_tab_widget()
         self.create_menubar()
 
@@ -116,7 +124,6 @@ class LoginWindow(QWidget, Ui_Login):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.setWindowTitle("Вход")
         self.initUI()
 
     def initUI(self) -> None:
@@ -172,10 +179,10 @@ class RegisterWindow(QWidget, Ui_Register):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.setWindowTitle("Регистрация")
         self.initUI()
 
     def initUI(self) -> None:
+        self.setFixedSize(307, 213)
         self.login_button.clicked.connect(self.login)
         self.register_button.clicked.connect(self.register)
 
@@ -233,7 +240,7 @@ class CreateFilm(QWidget, Ui_CreateFilm):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.setFixedWidth(261)
+        self.setFixedSize(261, 312)
         self.save_button.clicked.connect(self.create_film)
         self.create_genres_box()
         self.start_time_edit.setDisplayFormat("yyyy MM dd hh mm")
@@ -311,6 +318,7 @@ class CreateGenre(QWidget, Ui_CreateGenreOrCinema):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+        self.setFixedSize(259, 76)
         self.save_button.clicked.connect(self.define_action)
         self.editing = False
         self.id = None
@@ -364,7 +372,8 @@ class CreateCinema(QWidget, Ui_CreateGenreOrCinema):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.setWindowTitle("Добавление кинотеатра")
+        self.setFixedSize(259, 76)
+        self.setWindowTitle("Создание кинотеатра")
         self.save_button.clicked.connect(self.create_cinema)
 
     def clear_form(self) -> None:
@@ -390,7 +399,7 @@ class CreateRoom(QWidget, Ui_CreateRoom):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.setWindowTitle("Добавление кинозала")
+        self.setFixedSize(345, 131)
         self.save_button.clicked.connect(self.create_room)
 
     def clear_form(self) -> None:
@@ -421,7 +430,7 @@ class CreateAfisha(QWidget, Ui_CreateAfisha):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.setWindowTitle("Создание афиши")
+        self.setFixedSize(236, 211)
         self.filename = None
         self.genre_id, self.film_name = None, None
         self.save_button.clicked.connect(self.create_afisha)
@@ -465,7 +474,7 @@ class CreateReport(QWidget, Ui_CreateReport):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.setWindowTitle("Отчет")
+        self.setFixedSize(241, 130)
         self.initUI()
 
     def initUI(self):
@@ -525,14 +534,18 @@ class CreateReport(QWidget, Ui_CreateReport):
                                 QMessageBox.Ok)
             return
 
-        self.create_csv_table()
+        datetime = self.create_csv_table()
         self.create_circle_graphic()
         self.create_months_dicts()
         QMessageBox.warning(self, "Отчет", f"Отчет находится в: {self.dir_name}",
                             QMessageBox.Ok)
+        cursor.execute("INSERT INTO reports(path, datetime) VALUES(?, ?)", (self.dir_name, datetime))
+        connection.commit()
+        all_reports.load_report_data()
 
-    def create_csv_table(self) -> None:
-        self.dir_name = 'data/reports/report_' + dt.datetime.now().strftime("%Y_%m_%d_%H_%M_%SS") + '/'
+    def create_csv_table(self) -> str:
+        datetime = dt.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+        self.dir_name = 'data/reports/report_' + datetime + '/'
         os.makedirs(self.dir_name)
         with open(self.dir_name + 'table.csv', "w", newline='', encoding="utf-8") as report_csv:
             writer = csv.writer(report_csv, delimiter=';', quotechar='"',
@@ -541,6 +554,7 @@ class CreateReport(QWidget, Ui_CreateReport):
             for month in self.num_to_month.values():
                 row = [month, self.month_with_sums[month]]
                 writer.writerow(row)
+        return datetime
 
     def create_circle_graphic(self) -> None:
         labels = [month for month in self.num_to_month.values() if self.month_with_sums[month]]
@@ -608,6 +622,7 @@ class RoomView(QWidget, Ui_RoomView):
                                            f"{self.film_id}) RETURNING id").fetchone()[0]
                 connection.commit()
                 user_profile.load_cheques_data(self.user_id)
+                user_profile.total_money_edit.setText(str(int(user_profile.total_money_edit.text()) + self.price))
                 self.create_text_cheque(cheque_id,
                                         dt.datetime.now().strftime("%Y.%m.%d %H:%M"),
                                         unique_cheque_key)
@@ -619,13 +634,22 @@ class RoomView(QWidget, Ui_RoomView):
         """
         cheque_path = f"data/cheques/cheque_{cheque_id}"
 
+        film_data = cursor.execute("SELECT films.name, cinemas.name, films.room, films.datetime, films.price "
+                                   "FROM films "
+                                   "INNER JOIN cinemas ON films.cinema=cinemas.id "
+                                   f"WHERE films.id={self.film_id}").fetchone()
+
         with open(cheque_path, "w", encoding="utf-8") as cheque:
             cheque.write("Чек\n---------------------------------------\n"
-                         f"ID фильма: {self.film_id}\n"
-                         f"Время покупки: {datetime}\n"
+                         f"Название фильма: {film_data[0]}\n"
+                         f"Название кинотеатра: {film_data[1]}\n"
+                         f"ID зала: {film_data[2]}\n"
+                         f"Начало фильма: {dt.datetime(*map(int, film_data[3].split())).strftime('%Y.%m.%d %H:%M')}\n"
                          f"Номер чека: {cheque_id}\n"
-                         f"Уникальный ID чека: {unique_cheque_key}\n"
+                         f"Уникальный ключ: {unique_cheque_key}\n"
+                         f"Время покупки: {datetime}\n"
                          f"Ряд: {self.cur_row}, место: {self.cur_col}\n"
+                         f"Сумма покупки: {film_data[4]}\n"
                          f"---------------------------------------\n"
                          f"Спасибо за покупку!")
 
@@ -645,12 +669,14 @@ class RoomView(QWidget, Ui_RoomView):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self.clear_form()
+        self.cur_row, self.cur_col = -1, -1
 
 
 class AfishaView(QWidget, Ui_AfishaView):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+        self.setFixedWidth(480)
 
     def fill(self, name: str, genre: str, description: str, image: str) -> None:
         self.setWindowTitle(name)
@@ -662,6 +688,53 @@ class AfishaView(QWidget, Ui_AfishaView):
         self.description_label.setText(description)
         self.description_label.adjustSize()
         self.genre_label.setText(genre)
+
+
+class ChequeView(QWidget, Ui_ChequeView):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+        self.setFixedSize(322, 362)
+
+    def fill(self, filename: str):
+        if not os.path.isfile(filename):
+            QMessageBox.critical(self, "Чек", "Файл не найден",
+                                 QMessageBox.Ok)
+            return
+
+        with open(filename, encoding="utf-8") as cheque:
+            data = cheque.readlines()
+            self.film_name_edit.setText(data[2][data[2].find(': ') + 2:])
+            self.cinema_name_edit.setText(data[3][data[3].find(': ') + 2:])
+            self.room_id_edit.setText(data[4][data[4].find(': ') + 2:])
+            self.film_start_edit.setText(data[5][data[5].find(': ') + 2:])
+            self.cheque_id_edit.setText(data[6][data[6].find(': ') + 2:])
+            self.unique_key_edit.setText(data[7][data[7].find(': ') + 2:])
+            self.buy_time_edit.setText(data[8][data[8].find(': ') + 2:])
+            self.row_edit.setText(data[9][data[9].find(': ') + 2:data[9].find(',')])
+            self.col_edit.setText(data[9][data[9].rfind(': ') + 2:])
+            self.total_edit.setText(data[10][data[10].find(': ') + 2:])
+        self.show()
+
+
+class ReportView(QWidget, Ui_ReportView):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+        self.setFixedSize(662, 866)
+
+    def fill(self, dir_name: str) -> None:
+        pixmap = QPixmap(dir_name + "/graphic.png")
+        self.image.setPixmap(pixmap)
+        table_data = list()
+        with open(dir_name + 'table.csv', encoding="utf-8") as csvtable:
+            reader = csv.reader(csvtable, delimiter=';', quoting=csv.QUOTE_NONE)
+            next(reader)
+            for row in reader:
+                if int(row[1]):
+                    table_data.append((row[0], row[1]))
+        create_table(["Месяц", "Доход"], table_data, self.months_table_data)
+        self.show()
 
 
 class UserFilms(QWidget, Ui_UserFilms):
@@ -756,10 +829,12 @@ class UserProfile(QWidget, Ui_UserProfile):
         self.setupUi(self)
 
     def fill(self, user_id: int) -> None:
+        self.cheque_view = ChequeView()
         user_data = cursor.execute(f"SELECT username, total FROM users WHERE id={user_id}").fetchone()
         self.user_id_edit.setText(str(user_id))
         self.username_edit.setText(user_data[0])
         self.total_money_edit.setText(str(user_data[1]))
+        self.watch_cheque_button.clicked.connect(self.watch_cheque)
         self.load_cheques_data(user_id)
 
     def load_cheques_data(self, user_id):
@@ -772,7 +847,15 @@ class UserProfile(QWidget, Ui_UserProfile):
 
         if query_result:
             titles = ["ID", "Ключ", "Название фильма", "Начало фильма"]
-            create_table(titles, query_result, self.purchase_table_data, enable=True)
+            create_table(titles, query_result, self.purchase_table_data)
+
+    def watch_cheque(self):
+        row = self.purchase_table_data.currentRow()
+        if row == -1:
+            return
+
+        filename = 'data/cheques/cheque_' + self.purchase_table_data.item(row, 0).text()
+        self.cheque_view.fill(filename)
 
 
 class AllFilms(QWidget, Ui_AllFilms):
@@ -1030,6 +1113,36 @@ class AllUsers(QWidget, Ui_AllUsers):
         create_table(titles, query_result, self.users_table_data, enable=True)
 
 
+class AllReports(QWidget, Ui_AllReports):
+    def __init__(self):
+        super().__init__()
+        self.setupUi(self)
+        self.initUI()
+
+    def initUI(self):
+        self.report_view = ReportView()
+        self.delete_button.clicked.connect(self.delete_report)
+        self.watch_button.clicked.connect(self.watch_report)
+        self.load_report_data()
+
+    def delete_report(self):
+        pass
+
+    def watch_report(self):
+        row = self.reports_table_data.currentRow()
+        if row == -1:
+            return
+
+        dir_name = self.reports_table_data.item(row, 1).text()
+        self.report_view.fill(dir_name)
+
+    def load_report_data(self):
+        query_result = cursor.execute("SELECT * FROM reports").fetchall()
+        if query_result:
+            titles = ["ID", "Путь к файлу", "Время создания"]
+            create_table(titles, query_result, self.reports_table_data)
+
+
 def except_hook(cls, exception, traceback):
     sys.__excepthook__(cls, exception, traceback)
 
@@ -1040,6 +1153,7 @@ if __name__ == "__main__":
     all_rooms, create_film = None, None
     main_admin_window, user_main_window = None, None
     afisha_view, user_films = None, None
+    all_reports = None
     app = QApplication(sys.argv)
     sys.excepthook = except_hook
     login_window = LoginWindow()

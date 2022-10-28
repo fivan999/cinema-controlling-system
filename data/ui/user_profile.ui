@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>741</width>
-    <height>400</height>
+    <height>409</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -119,8 +119,21 @@
      <x>10</x>
      <y>60</y>
      <width>721</width>
-     <height>331</height>
+     <height>341</height>
     </rect>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="watch_cheque_button">
+   <property name="geometry">
+    <rect>
+     <x>640</x>
+     <y>40</y>
+     <width>91</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Посмотреть чек</string>
    </property>
   </widget>
  </widget>
