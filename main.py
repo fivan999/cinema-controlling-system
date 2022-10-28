@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QMessageBox,
 from data.py_files.ui_code import *
 
 
-connection = sqlite3.connect("CinemaSystemDatabase.db")
+connection = sqlite3.connect("data/CinemaSystemDatabase.db")
 cursor = connection.cursor()
 
 
@@ -258,6 +258,7 @@ class CreateFilm(QWidget, Ui_CreateFilm):
     @staticmethod
     def check_film(room: int, start_time: str, film_duration: int) -> bool:
         start_time = dt.datetime(*map(int, start_time.split()))
+        end_time = start_time + dt.timedelta(minutes=(25 + film_duration))
         if start_time < dt.datetime.now() + dt.timedelta(days=5):
             return False
 
@@ -266,8 +267,7 @@ class CreateFilm(QWidget, Ui_CreateFilm):
             time, duration = item
             item_start_time = dt.datetime(*map(int, time.split()))
             item_end_time = item_start_time + dt.timedelta(minutes=(25 + duration))
-            end_time = start_time + dt.timedelta(minutes=(25 + film_duration))
-            if end_time < item_start_time and start_time > item_end_time:
+            if item_start_time <= start_time < item_end_time or item_start_time < end_time <= item_end_time:
                 print(item)
                 return False
 
@@ -358,11 +358,10 @@ class CreateAfisha(QWidget, Ui_CreateAfisha):
         self.filename = None
 
     def check_filename(self) -> str:
-        if not self.filename.find('data/afisha_images/' + self.filename[self.filename.rfind('/') + 1:]):
-            new_fname = 'data/afisha_images/' + self.filename[self.filename.rfind('/') + 1:]
+        new_fname = 'data/afisha_images/' + self.filename[self.filename.rfind('/') + 1:]
+        if not os.path.isfile(new_fname):
             shutil.copyfile(self.filename, new_fname)
-            return new_fname
-        return 'data/afisha_images/' + self.filename[self.filename.rfind('/') + 1:]
+        return new_fname
 
     def create_afisha(self) -> None:
         description = self.description_edit.toPlainText()
@@ -447,7 +446,7 @@ class CreateReport(QWidget, Ui_CreateReport):
             self.month_with_sums[self.num_to_month[month]] += price
 
         if not any(self.month_with_sums.values()):
-            QMessageBox.warning(self, "Отчет", "Покупок в этом кинотеатре не было",
+            QMessageBox.warning(self, "Отчет", "За этот год покупок не было",
                                 QMessageBox.Ok)
             return
 
@@ -583,10 +582,17 @@ class RoomView(QWidget, Ui_RoomView):
     def clear_form(self) -> None:
         self.row_edit.setText("")
         self.col_edit.setText("")
+        self.cur_row, self.cur_col = -1, -1
+        while self.seats_grid.count():
+            child = self.seats_grid.takeAt(0)
+            childWidget = child.widget()
+            if childWidget:
+                childWidget.setParent(None)
+                childWidget.deleteLater()
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self.clear_form()
-        self.cur_row, self.cur_col = -1, -1
+
 
 
 class AfishaView(QWidget, Ui_AfishaView):
@@ -891,6 +897,7 @@ class AllGenres(QWidget, Ui_AllGenres):
                                f"VALUES (?)", (name,))
                 connection.commit()
                 self.load_genre_data()
+                create_film.create_genres_box()
             else:
                 QMessageBox.critical(self, "Ошибка",
                                      "Неверно заполнена форма")
@@ -927,7 +934,7 @@ class AllGenres(QWidget, Ui_AllGenres):
                                  f"DELETE FROM genres WHERE id={genre_id}")
             connection.commit()
             self.load_genre_data()
-            all_films.load_film_data()
+            create_film.create_genre_box()
 
 
 class AllCinemas(QWidget, Ui_AllCinemas):
