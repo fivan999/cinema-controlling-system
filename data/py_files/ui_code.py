@@ -501,10 +501,12 @@ class Ui_RoomView(object):
         self.row_edit = QtWidgets.QLineEdit(Form)
         self.row_edit.setAlignment(QtCore.Qt.AlignCenter)
         self.row_edit.setObjectName("row_edit")
+        self.row_edit.setReadOnly(True)
         self.gridLayout_2.addWidget(self.row_edit, 2, 1, 1, 1)
         self.col_edit = QtWidgets.QLineEdit(Form)
         self.col_edit.setAlignment(QtCore.Qt.AlignCenter)
         self.col_edit.setObjectName("col_edit")
+        self.col_edit.setReadOnly(True)
         self.gridLayout_2.addWidget(self.col_edit, 2, 3, 1, 1)
 
         self.retranslateUi(Form)

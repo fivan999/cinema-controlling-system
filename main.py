@@ -53,7 +53,7 @@ def create_user_window() -> None:
     user_main_window = UserMainWindow()
 
 
-def create_table(titles: list, query_result: list, table: QTableWidget, enable: bool = False) -> None:
+def create_table(titles: list, query_result: list, table: QTableWidget) -> None:
     """
     fills table with taken column titles,
     using data from query_result
@@ -62,12 +62,10 @@ def create_table(titles: list, query_result: list, table: QTableWidget, enable: 
     table.setColumnCount(len(query_result[0]))
 
     table.setHorizontalHeaderLabels(titles)
-
+    table.setEditTriggers(QTableWidget.NoEditTriggers)  # to set table read only
     for i, elem in enumerate(query_result):
         for j, val in enumerate(elem):
             table.setItem(i, j, QTableWidgetItem(str(val)))
-            if enable:
-                table.item(i, j).setFlags(QtCore.Qt.ItemIsEnabled)
     table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  # to set columns equal width
 
 
@@ -851,7 +849,7 @@ class AllFilms(QWidget, Ui_AllFilms):
             return
 
         valid = QMessageBox.question(
-                self, '', "Действительно удалить данный фильм?",
+                self, 'Удаление фильма', "Действительно удалить данный фильм?",
                 QMessageBox.Yes, QMessageBox.No)
 
         if valid == QMessageBox.Yes:
@@ -925,7 +923,7 @@ class AllGenres(QWidget, Ui_AllGenres):
             return
 
         valid = QMessageBox.question(
-                self, '', "Действительно удалить данный жанр?",
+                self, 'Удаление жанра', "Действительно удалить данный жанр?",
                 QMessageBox.Yes, QMessageBox.No)
 
         if valid == QMessageBox.Yes:
@@ -986,7 +984,7 @@ class AllCinemas(QWidget, Ui_AllCinemas):
             return
 
         valid = QMessageBox.question(
-                self, '', "Действительно удалить данный кинотеатр?",
+                self, 'Удаление кинотеатра', "Действительно удалить данный кинотеатр?",
                 QMessageBox.Yes, QMessageBox.No)
 
         if valid == QMessageBox.Yes:
@@ -1056,7 +1054,7 @@ class AllUsers(QWidget, Ui_AllUsers):
     def load_users_data(self) -> None:
         query_result = cursor.execute(f"SELECT * FROM users").fetchall()
         titles = ["ID", "Имя", "Пароль", "Админ", "Сумма покупок"]
-        create_table(titles, query_result, self.users_table_data, enable=True)
+        create_table(titles, query_result, self.users_table_data)
 
 
 class AllReports(QWidget, Ui_AllReports):
