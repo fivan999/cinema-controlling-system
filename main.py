@@ -156,7 +156,7 @@ class LoginWindow(QWidget, Ui_Login):
                 user_main_window.show()
         else:
             QMessageBox.critical(
-                self, 'Ошибка входа', "Неравильный логин или пароль",
+                self, 'Ошибка входа', "Неправильный логин или пароль",
                 QMessageBox.Ok)
             return
 
@@ -1092,6 +1092,10 @@ class AllReports(QWidget, Ui_AllReports):
             return
 
         dir_name = self.reports_table_data.item(row, 1).text()
+        if not os.path.isdir(dir_name):
+            QMessageBox.critical(self, "Отчет", "Файл не найден",
+                                 QMessageBox.Ok)
+            return
         self.report_view.fill(dir_name)
 
     def load_report_data(self):
