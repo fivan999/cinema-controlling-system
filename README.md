@@ -3,11 +3,15 @@ It is an application on PyQt created as a project for educational platform Yande
 ## Installation
 ```
 git clone https://github.com/fivan999/cinema-controlling-system
-pip install -r requirements.txt
 ```
 ## Usage
 ```
+pip install requirements.txt
 python main.py
+```
+or 
+```
+cinema-controlling-system.exe
 ```
 ## Description
 ### Administation

@@ -934,7 +934,7 @@ class AllGenres(QWidget, Ui_AllGenres):
                                  f"DELETE FROM genres WHERE id={genre_id}")
             connection.commit()
             self.load_genre_data()
-            create_film.create_genre_box()
+            create_film.create_genres_box()
 
 
 class AllCinemas(QWidget, Ui_AllCinemas):
