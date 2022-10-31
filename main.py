@@ -12,7 +12,6 @@ from PyQt5.QtGui import QPixmap, QCloseEvent
 from PyQt5.QtWidgets import (QWidget, QMainWindow, QApplication, QMessageBox,
                              QTableWidgetItem, QHeaderView, QFileDialog,
                              QMenu, QMenuBar, QAction, QTableWidget, QPushButton, QInputDialog)
-
 from data.py_files.ui_code import *
 
 
@@ -25,32 +24,6 @@ if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
 
 if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
-
-
-def create_admin_windows() -> None:
-    """
-    creates nessesary windows for admin
-    """
-    global all_films, all_cinemas, all_genres, \
-        all_rooms, main_admin_window, create_film, all_reports
-    all_cinemas = AllCinemas()
-    all_films = AllFilms()
-    all_genres = AllGenres()
-    all_rooms = AllRooms()
-    create_film = CreateFilm()
-    all_reports = AllReports()
-    main_admin_window = AdminMainWindow()
-
-
-def create_user_window() -> None:
-    """
-    creates nessesary windows for user
-    """
-    global user_main_window, afisha_view, user_films, user_profile
-    afisha_view = AfishaView()
-    user_profile = UserProfile()
-    user_films = UserFilms()
-    user_main_window = UserMainWindow()
 
 
 def create_table(titles: list, query_result: list, table: QTableWidget) -> None:
@@ -69,9 +42,13 @@ def create_table(titles: list, query_result: list, table: QTableWidget) -> None:
     table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  # to set columns equal width
 
 
-class MainWindow(QMainWindow):
+class BaseWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.cur_main_window = None
+        self.login_window = LoginWindow()
+        self.login_window.show()
+        self.register_window = RegisterWindow()
 
     def create_menubar(self) -> None:
         self.menuBar = QMenuBar(self)
@@ -83,11 +60,11 @@ class MainWindow(QMainWindow):
         self.setMenuBar(self.menuBar)
 
     def change_user(self) -> None:
-        login_window.show()
+        self.login_window.show()
         self.close()
 
 
-class AdminMainWindow(MainWindow, Ui_AdminMainWindow):
+class AdminMainWindow(BaseWindow, Ui_AdminMainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
@@ -96,15 +73,21 @@ class AdminMainWindow(MainWindow, Ui_AdminMainWindow):
         self.create_menubar()
 
     def create_tab_widget(self) -> None:
-        self.tabWidget.addTab(all_cinemas, "Кинотеатры")
-        self.tabWidget.addTab(all_rooms, "Залы")
-        self.tabWidget.addTab(all_films, "Фильмы")
-        self.tabWidget.addTab(all_genres, "Жанры")
-        self.tabWidget.addTab(AllUsers(), "Пользователи")
-        self.tabWidget.addTab(all_reports, "Отчеты")
+        self.all_cinemas = AllCinemas()
+        self.all_rooms = AllRooms()
+        self.all_films = AllFilms()
+        self.all_genres = AllGenres()
+        self.all_users = AllUsers()
+        self.all_reports = AllReports()
+        self.tabWidget.addTab(self.all_cinemas, "Кинотеатры")
+        self.tabWidget.addTab(self.all_rooms, "Залы")
+        self.tabWidget.addTab(self.all_films, "Фильмы")
+        self.tabWidget.addTab(self.all_genres, "Жанры")
+        self.tabWidget.addTab(self.all_users, "Пользователи")
+        self.tabWidget.addTab(self.all_reports, "Отчеты")
 
 
-class UserMainWindow(MainWindow, Ui_UserMainWindow):
+class UserMainWindow(BaseWindow, Ui_UserMainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
@@ -112,8 +95,10 @@ class UserMainWindow(MainWindow, Ui_UserMainWindow):
         self.create_menubar()
 
     def create_tab_widget(self) -> None:
-        self.tabWidget.addTab(user_films, "Фильмы")
-        self.tabWidget.addTab(user_profile, "Мой профиль")
+        self.user_films = UserFilms()
+        self.user_profile = UserProfile()
+        self.tabWidget.addTab(self.user_films, "Фильмы")
+        self.tabWidget.addTab(self.user_profile, "Мой профиль")
 
 
 class LoginWindow(QWidget, Ui_Login):
@@ -148,12 +133,11 @@ class LoginWindow(QWidget, Ui_Login):
             user_id, is_admin = user_obj
             self.clear()
             if is_admin:
-                create_admin_windows()
-                main_admin_window.show()
+                base_window.cur_main_window = AdminMainWindow()
             else:
-                create_user_window()
-                user_profile.fill(user_id)
-                user_main_window.show()
+                base_window.cur_main_window = UserMainWindow()
+                base_window.cur_main_window.user_profile.fill(user_id)
+            base_window.cur_main_window.show()
         else:
             QMessageBox.critical(
                 self, 'Ошибка входа', "Неправильный логин или пароль",
@@ -161,7 +145,7 @@ class LoginWindow(QWidget, Ui_Login):
             return
 
     def register(self) -> None:
-        register_window.show()
+        base_window.register_window.show()
         self.clear()
         self.close()
 
@@ -183,7 +167,7 @@ class RegisterWindow(QWidget, Ui_Register):
         self.register_button.clicked.connect(self.register)
 
     def login(self) -> None:
-        login_window.show()
+        base_window.login_window.show()
         self.close()
         self.clear()
 
@@ -301,7 +285,7 @@ class CreateFilm(QWidget, Ui_CreateFilm):
             self.insert_seats(rows_cnt * cols_cnt, film_id, room_id)
 
             connection.commit()
-            all_films.load_film_data()
+            base_window.cur_main_window.all_films.load_film_data()
             self.close()
         else:
             self.feedback_label.setText("Неверно заполнена форма")
@@ -332,7 +316,7 @@ class CreateRoom(QWidget, Ui_CreateRoom):
             cursor.execute(f"INSERT INTO rooms(cinema, rows, cols) "
                            f"VALUES ({cinema_id}, {rows_cnt}, {cols_cnt})")
             connection.commit()
-            all_rooms.load_rooms_data()
+            base_window.cur_main_window.all_rooms.load_rooms_data()
             self.close()
         else:
             self.feedback_label.setText("Неверно заполнена форма")
@@ -455,7 +439,7 @@ class CreateReport(QWidget, Ui_CreateReport):
                             QMessageBox.Ok)
         cursor.execute("INSERT INTO reports(path, datetime) VALUES(?, ?)", (self.dir_name, datetime))
         connection.commit()
-        all_reports.load_report_data()
+        base_window.cur_main_window.all_reports.load_report_data()
 
     def create_csv_table(self) -> str:
         datetime = dt.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
@@ -492,7 +476,7 @@ class RoomView(QWidget, Ui_RoomView):
         self.rows, self.cols = 0, 0
 
     def fill(self, film_id: int, price: int) -> None:
-        self.user_id = int(user_profile.user_id_edit.text())
+        self.user_id = int(base_window.cur_main_window.user_profile.user_id_edit.text())
         self.film_id, self.price = film_id, price
         query_result = cursor.execute("SELECT seats.id, seats.taken, rooms.id, rooms.rows, rooms.cols "
                                       "FROM seats "
@@ -535,8 +519,10 @@ class RoomView(QWidget, Ui_RoomView):
                                            f"VALUES('{unique_cheque_key}', {self.user_id}, "
                                            f"{self.film_id}) RETURNING id").fetchone()[0]
                 connection.commit()
-                user_profile.load_cheques_data(self.user_id)
-                user_profile.total_money_edit.setText(str(int(user_profile.total_money_edit.text()) + self.price))
+                base_window.cur_main_window.user_profile.load_cheques_data(self.user_id)
+                base_window.cur_main_window.user_profile.total_money_edit.setText(str(int(base_window.cur_main_window.
+                                                                                          user_profile.total_money_edit.text())
+                                                                                      + self.price))
                 self.create_text_cheque(cheque_id,
                                         dt.datetime.now().strftime("%Y.%m.%d %H:%M"),
                                         unique_cheque_key)
@@ -590,7 +576,6 @@ class RoomView(QWidget, Ui_RoomView):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self.clear_form()
-
 
 
 class AfishaView(QWidget, Ui_AfishaView):
@@ -682,6 +667,7 @@ class UserFilms(QWidget, Ui_UserFilms):
         self.query = self.base_query[:]
         self.order = " ORDER BY films.datetime"
         self.load_films_data()
+        self.afisha_view = AfishaView()
 
     def search(self) -> None:
         search_by = self.search_by_box.currentText()
@@ -722,8 +708,8 @@ class UserFilms(QWidget, Ui_UserFilms):
                                 f"INNER JOIN films ON films.afisha = descriptions.id and films.id = {film_id} "
                                 f"INNER JOIN genres ON genres.id = films.genre").fetchone()
         if afisha:
-            afisha_view.fill(*afisha)
-            afisha_view.show()
+            self.afisha_view.fill(*afisha)
+            self.afisha_view.show()
         else:
             QMessageBox.warning(
                 self, 'Афиша', "На этот фильм еще нет афиши",
@@ -783,6 +769,7 @@ class AllFilms(QWidget, Ui_AllFilms):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
+        self.create_film = CreateFilm()
         self.setFixedWidth(710)
         self.create_afisha_form = CreateAfisha()
         self.initUI()
@@ -838,10 +825,9 @@ class AllFilms(QWidget, Ui_AllFilms):
         while self.film_table_data.rowCount() > 0:
             self.film_table_data.removeRow(0)
 
-    @staticmethod
-    def add_film() -> None:
-        create_film.setWindowTitle("Добавление фильма")
-        create_film.show()
+    def add_film(self) -> None:
+        self.create_film.setWindowTitle("Добавление фильма")
+        self.create_film.show()
 
     def delete_film(self) -> None:
         row = self.film_table_data.currentRow()
@@ -895,7 +881,7 @@ class AllGenres(QWidget, Ui_AllGenres):
                                f"VALUES (?)", (name,))
                 connection.commit()
                 self.load_genre_data()
-                create_film.create_genres_box()
+                base_window.cur_main_window.all_films.create_film.create_genres_box()
             else:
                 QMessageBox.critical(self, "Ошибка",
                                      "Неверно заполнена форма")
@@ -912,7 +898,7 @@ class AllGenres(QWidget, Ui_AllGenres):
                                    f"WHERE id=?", (name, int(self.genre_table_data.item(row, 0).text())))
                     connection.commit()
                     self.load_genre_data()
-                    create_film.create_genres_box()
+                    base_window.cur_main_window.all_films.create_film.create_genres_box()
                 else:
                     QMessageBox.critical(self, "Ошибка",
                                          "Неверно заполнена форма")
@@ -932,7 +918,7 @@ class AllGenres(QWidget, Ui_AllGenres):
                                  f"DELETE FROM genres WHERE id={genre_id}")
             connection.commit()
             self.load_genre_data()
-            create_film.create_genres_box()
+            base_window.cur_main_window.all_films.create_film.create_genres_box()
 
 
 class AllCinemas(QWidget, Ui_AllCinemas):
@@ -994,8 +980,8 @@ class AllCinemas(QWidget, Ui_AllCinemas):
                                  f"DELETE FROM cinemas WHERE id={cinema_id}")
             connection.commit()
             self.load_cinema_data()
-            all_films.load_film_data()
-            all_rooms.load_rooms_data()
+            base_window.cur_main_window.all_films.load_film_data()
+            base_window.cur_main_window.all_rooms.load_rooms_data()
 
 
 class AllRooms(QWidget, Ui_AllRooms):
@@ -1042,7 +1028,7 @@ class AllRooms(QWidget, Ui_AllRooms):
                                  f"DELETE FROM rooms WHERE id={room_id}")
             connection.commit()
             self.load_rooms_data()
-            all_films.load_film_data()
+            base_window.cur_main_window.all_films.load_film_data()
 
 
 class AllUsers(QWidget, Ui_AllUsers):
@@ -1110,15 +1096,7 @@ def except_hook(cls, exception, traceback):
 
 
 if __name__ == "__main__":
-    user_profile, all_cinemas = None, None
-    all_films, all_genres = None, None
-    all_rooms, create_film = None, None
-    main_admin_window, user_main_window = None, None
-    afisha_view, user_films = None, None
-    all_reports = None
     app = QApplication(sys.argv)
     sys.excepthook = except_hook
-    login_window = LoginWindow()
-    register_window = RegisterWindow()
-    login_window.show()
+    base_window = BaseWindow()
     sys.exit(app.exec_())
