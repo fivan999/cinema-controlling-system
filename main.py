@@ -35,7 +35,6 @@ def create_table(titles: list, query_result: list, table: QTableWidget) -> None:
     table.setColumnCount(len(query_result[0]))
 
     table.setHorizontalHeaderLabels(titles)
-    table.setEditTriggers(QTableWidget.NoEditTriggers)  # to set table read only
     for i, elem in enumerate(query_result):
         for j, val in enumerate(elem):
             table.setItem(i, j, QTableWidgetItem(str(val)))
@@ -45,10 +44,11 @@ def create_table(titles: list, query_result: list, table: QTableWidget) -> None:
 class BaseWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.create_menubar()
         self.cur_main_window = None
         self.login_window = LoginWindow()
-        self.login_window.show()
         self.register_window = RegisterWindow()
+        self.login_window.show()
 
     def create_menubar(self) -> None:
         self.menuBar = QMenuBar(self)
@@ -70,7 +70,6 @@ class AdminMainWindow(BaseWindow, Ui_AdminMainWindow):
         self.setupUi(self)
         self.setFixedWidth(710)
         self.create_tab_widget()
-        self.create_menubar()
 
     def create_tab_widget(self) -> None:
         self.all_cinemas = AllCinemas()
@@ -81,7 +80,7 @@ class AdminMainWindow(BaseWindow, Ui_AdminMainWindow):
         self.all_reports = AllReports()
         self.tabWidget.addTab(self.all_cinemas, "Кинотеатры")
         self.tabWidget.addTab(self.all_rooms, "Залы")
-        self.tabWidget.addTab(self.all_films, "Фильмы")
+        self.tabWidget.addTab(self.all_films, "Сеансы")
         self.tabWidget.addTab(self.all_genres, "Жанры")
         self.tabWidget.addTab(self.all_users, "Пользователи")
         self.tabWidget.addTab(self.all_reports, "Отчеты")
@@ -92,12 +91,11 @@ class UserMainWindow(BaseWindow, Ui_UserMainWindow):
         super().__init__()
         self.setupUi(self)
         self.create_tab_widget()
-        self.create_menubar()
 
     def create_tab_widget(self) -> None:
         self.user_films = UserFilms()
         self.user_profile = UserProfile()
-        self.tabWidget.addTab(self.user_films, "Фильмы")
+        self.tabWidget.addTab(self.user_films, "Сеансы")
         self.tabWidget.addTab(self.user_profile, "Мой профиль")
 
 
@@ -131,13 +129,13 @@ class LoginWindow(QWidget, Ui_Login):
                                   f" and password='{password_text}'", (login_text, )).fetchone()
         if user_obj:
             user_id, is_admin = user_obj
-            self.clear()
             if is_admin:
                 base_window.cur_main_window = AdminMainWindow()
             else:
                 base_window.cur_main_window = UserMainWindow()
                 base_window.cur_main_window.user_profile.fill(user_id)
             base_window.cur_main_window.show()
+            self.clear()
         else:
             QMessageBox.critical(
                 self, 'Ошибка входа', "Неправильный логин или пароль",
@@ -145,14 +143,13 @@ class LoginWindow(QWidget, Ui_Login):
             return
 
     def register(self) -> None:
-        base_window.register_window.show()
         self.clear()
-        self.close()
+        base_window.register_window.show()
 
     def clear(self) -> None:
-        self.close()
         self.login_edit.clear()
         self.password_edit.clear()
+        self.close()
 
 
 class RegisterWindow(QWidget, Ui_Register):
@@ -271,8 +268,11 @@ class CreateFilm(QWidget, Ui_CreateFilm):
         room_id = self.room_id_box.value()
         cinema_id = self.cinema_id_box.value()
         price = self.price_box.value()
+        room_in_cinema = cursor.execute("SELECT id FROM rooms WHERE id=? and cinema=?",
+                                        (room_id, cinema_id)).fetchone()
 
-        if name and duration and room_id and cinema_id and self.check_film(room_id, start_time, duration):
+        if name and duration and room_id and cinema_id and room_in_cinema and self.check_film(room_id, start_time,
+                                                                                              duration):
             genre_id = cursor.execute(f"SELECT id FROM genres WHERE name='{genre}'").fetchone()[0]
             rows_and_cols = cursor.execute(f"SELECT rows, cols FROM rooms WHERE id={room_id}").fetchone()
             rows_cnt, cols_cnt = rows_and_cols
@@ -521,7 +521,8 @@ class RoomView(QWidget, Ui_RoomView):
                 connection.commit()
                 base_window.cur_main_window.user_profile.load_cheques_data(self.user_id)
                 base_window.cur_main_window.user_profile.total_money_edit.setText(str(int(base_window.cur_main_window.
-                                                                                          user_profile.total_money_edit.text())
+                                                                                          user_profile.total_money_edit.
+                                                                                          text())
                                                                                       + self.price))
                 self.create_text_cheque(cheque_id,
                                         dt.datetime.now().strftime("%Y.%m.%d %H:%M"),
@@ -792,7 +793,7 @@ class AllFilms(QWidget, Ui_AllFilms):
                                              f"WHERE films.name='{film_name}'").fetchone()
         if afisha_id:
             valid = QMessageBox.question(self, "Афиша",
-                                         "У данного фильма уже есть афиша, удалить и перезаписать?",
+                                         "У данного сеанса уже есть афиша, удалить и перезаписать?",
                                          QMessageBox.Yes, QMessageBox.No)
             if valid != QMessageBox.Yes:
                 return
@@ -818,6 +819,7 @@ class AllFilms(QWidget, Ui_AllFilms):
         if query_result:
             titles = ["ИД", "Название фильма", "Жанр", "Продолжительность", "Начало", "Кинотеатр", "Зал", "Цена"]
             create_table(titles, query_result, self.film_table_data)
+            self.film_table_data.resizeColumnToContents(1)
         else:
             self.clear_table()
 
@@ -826,7 +828,7 @@ class AllFilms(QWidget, Ui_AllFilms):
             self.film_table_data.removeRow(0)
 
     def add_film(self) -> None:
-        self.create_film.setWindowTitle("Добавление фильма")
+        self.create_film.setWindowTitle("Добавление сеанса")
         self.create_film.show()
 
     def delete_film(self) -> None:
@@ -835,7 +837,7 @@ class AllFilms(QWidget, Ui_AllFilms):
             return
 
         valid = QMessageBox.question(
-                self, 'Удаление фильма', "Действительно удалить данный фильм?",
+                self, 'Удаление сеанса', "Действительно удалить данный сеанс?",
                 QMessageBox.Yes, QMessageBox.No)
 
         if valid == QMessageBox.Yes:

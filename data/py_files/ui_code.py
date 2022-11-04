@@ -342,8 +342,8 @@ class Ui_AllFilms(object):
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Form"))
-        self.add_film_button.setText(_translate("Form", "Добавить фильм"))
-        self.delete_film_button.setText(_translate("Form", "Удалить фильм"))
+        self.add_film_button.setText(_translate("Form", "Добавить сеанс"))
+        self.delete_film_button.setText(_translate("Form", "Удалить сеанс"))
         self.create_afisha_button.setText(_translate("Form", "Создать афишу"))
 
 
