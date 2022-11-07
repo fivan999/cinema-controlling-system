@@ -26,20 +26,35 @@ if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
 
 
-def create_table(titles: list, query_result: list, table: QTableWidget, equal_cols: bool = True) -> None:
+def create_table(titles: list, query_result: list, table: QTableWidget, equal_cols: bool = True,
+                 need_datetime=False, column=-1) -> None:
     """
     fills table with taken column titles,
     using data from query_result
     """
     table.setRowCount(len(query_result))
     table.setColumnCount(len(query_result[0]))
-
     table.setHorizontalHeaderLabels(titles)
+
     for i, elem in enumerate(query_result):
         for j, val in enumerate(elem):
             table.setItem(i, j, QTableWidgetItem(str(val)))
+
+    table.setEditTriggers(QtWidgets.QTableWidget.NoEditTriggers)  # set table read only
     if equal_cols:
         table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  # to set columns equal width
+    if need_datetime:
+        format_datetime(table, column)
+
+
+def format_datetime(table: QTableWidget, column: int):
+    """
+    format datetime in tables
+    """
+    for row in range(table.rowCount()):
+        datetime = table.item(row, column).text()
+        formated_datetime = dt.datetime(*map(int, datetime.split())).strftime("%d.%m.%Y %H:%M")
+        table.item(row, column).setText(formated_datetime)
 
 
 class BaseWindow(QMainWindow):
@@ -528,7 +543,7 @@ class RoomView(QWidget, Ui_RoomView):
                                                                                           text())
                                                                                       + self.price))
                 self.create_text_cheque(cheque_id,
-                                        dt.datetime.now().strftime("%Y.%m.%d %H:%M"),
+                                        dt.datetime.now().strftime("%d.%m.%Y %H:%M"),
                                         unique_cheque_key)
                 self.close()
 
@@ -548,7 +563,7 @@ class RoomView(QWidget, Ui_RoomView):
                          f"Название фильма: {film_data[0]}\n"
                          f"Название кинотеатра: {film_data[1]}\n"
                          f"ID зала: {film_data[2]}\n"
-                         f"Начало фильма: {dt.datetime(*map(int, film_data[3].split())).strftime('%Y.%m.%d %H:%M')}\n"
+                         f"Начало фильма: {dt.datetime(*map(int, film_data[3].split())).strftime('%d.%m.%Y %H:%M')}\n"
                          f"Номер чека: {cheque_id}\n"
                          f"Уникальный ключ: {unique_cheque_key}\n"
                          f"Время покупки: {datetime}\n"
@@ -631,7 +646,7 @@ class ReportView(QWidget, Ui_ReportView):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.setFixedSize(662, 866)
+        self.setFixedSize(660, 719)
 
     def fill(self, dir_name: str) -> None:
         pixmap = QPixmap(dir_name + "/graphic.png")
@@ -689,14 +704,14 @@ class UserFilms(QWidget, Ui_UserFilms):
                 self.query = self.base_query + f" and genres.name LIKE '%{search_text}%'"
             elif search_by == "Максимальная цена" and search_text.isdigit():
                 self.query = self.base_query + f" and films.price <= {int(search_text)}"
-            self.load_films_data()
+        self.load_films_data()
 
     def load_films_data(self) -> None:
         query_result = cursor.execute(self.query + self.order).fetchall()
 
         if query_result:
             titles = ["ИД", "Название фильма", "Жанр", "Время", "Начало", "Кинотеатр", "Зал", "Цена"]
-            create_table(titles, query_result, self.films_table_data, equal_cols=False)
+            create_table(titles, query_result, self.films_table_data, equal_cols=False, need_datetime=True, column=4)
             self.films_table_data.setColumnWidth(1, 160)
             self.films_table_data.setColumnWidth(6, 48)
             self.films_table_data.setColumnWidth(7, 60)
@@ -763,7 +778,7 @@ class UserProfile(QWidget, Ui_UserProfile):
 
         if query_result:
             titles = ["ID", "Ключ", "Название фильма", "Начало фильма"]
-            create_table(titles, query_result, self.purchase_table_data)
+            create_table(titles, query_result, self.purchase_table_data, need_datetime=True, column=3)
 
     def watch_cheque(self):
         row = self.purchase_table_data.currentRow()
@@ -826,7 +841,7 @@ class AllFilms(QWidget, Ui_AllFilms):
 
         if query_result:
             titles = ["ИД", "Название фильма", "Жанр", "Время", "Начало", "Кинотеатр", "Зал", "Цена"]
-            create_table(titles, query_result, self.film_table_data, equal_cols=False)
+            create_table(titles, query_result, self.film_table_data, equal_cols=False, need_datetime=True, column=4)
             self.film_table_data.setColumnWidth(1, 160)
             self.film_table_data.setColumnWidth(6, 30)
             self.film_table_data.setColumnWidth(7, 30)
