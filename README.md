@@ -6,7 +6,7 @@ git clone https://github.com/fivan999/cinema-controlling-system
 ```
 ## Usage
 ```
-pip install requirements.txt
+pip install -r requirements.txt
 python main.py
 ```
 or 
