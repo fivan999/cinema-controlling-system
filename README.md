@@ -11,7 +11,7 @@ python main.py
 ```
 or 
 ```
-cinema-controlling-system.exe
+release/cinema-controlling-system.exe
 ```
 ## Description
 ### Administation
