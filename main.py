@@ -26,7 +26,7 @@ if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
 
 
-def create_table(titles: list, query_result: list, table: QTableWidget) -> None:
+def create_table(titles: list, query_result: list, table: QTableWidget, equal_cols: bool = True) -> None:
     """
     fills table with taken column titles,
     using data from query_result
@@ -38,7 +38,8 @@ def create_table(titles: list, query_result: list, table: QTableWidget) -> None:
     for i, elem in enumerate(query_result):
         for j, val in enumerate(elem):
             table.setItem(i, j, QTableWidgetItem(str(val)))
-    table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  # to set columns equal width
+    if equal_cols:
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  # to set columns equal width
 
 
 class BaseWindow(QMainWindow):
@@ -70,6 +71,7 @@ class AdminMainWindow(BaseWindow, Ui_AdminMainWindow):
         self.setupUi(self)
         self.setFixedWidth(710)
         self.create_tab_widget()
+        self.login_window.close()
 
     def create_tab_widget(self) -> None:
         self.all_cinemas = AllCinemas()
@@ -91,6 +93,7 @@ class UserMainWindow(BaseWindow, Ui_UserMainWindow):
         super().__init__()
         self.setupUi(self)
         self.create_tab_widget()
+        self.login_window.close()
 
     def create_tab_widget(self) -> None:
         self.user_films = UserFilms()
@@ -135,7 +138,7 @@ class LoginWindow(QWidget, Ui_Login):
                 base_window.cur_main_window = UserMainWindow()
                 base_window.cur_main_window.user_profile.fill(user_id)
             base_window.cur_main_window.show()
-            self.clear()
+            self.clear_and_close()
         else:
             QMessageBox.critical(
                 self, 'Ошибка входа', "Неправильный логин или пароль",
@@ -143,10 +146,10 @@ class LoginWindow(QWidget, Ui_Login):
             return
 
     def register(self) -> None:
-        self.clear()
+        self.clear_and_close()
         base_window.register_window.show()
 
-    def clear(self) -> None:
+    def clear_and_close(self) -> None:
         self.login_edit.clear()
         self.password_edit.clear()
         self.close()
@@ -165,8 +168,7 @@ class RegisterWindow(QWidget, Ui_Register):
 
     def login(self) -> None:
         base_window.login_window.show()
-        self.close()
-        self.clear()
+        self.clear_and_close()
 
     def register(self) -> None:
         login_text = self.login_edit.text()
@@ -207,10 +209,11 @@ class RegisterWindow(QWidget, Ui_Register):
         connection.commit()
         self.clear()
 
-    def clear(self) -> None:
+    def clear_and_close(self) -> None:
         self.login_edit.clear()
         self.password_edit.clear()
         self.password_again.clear()
+        self.close()
 
 
 class CreateFilm(QWidget, Ui_CreateFilm):
@@ -640,7 +643,7 @@ class ReportView(QWidget, Ui_ReportView):
             for row in reader:
                 if int(row[1]):
                     table_data.append((row[0], row[1]))
-        create_table(["Месяц", "Доход"], table_data, self.months_table_data)
+        create_table(["Месяц", "Оборот"], table_data, self.months_table_data)
         self.show()
 
 
@@ -692,8 +695,13 @@ class UserFilms(QWidget, Ui_UserFilms):
         query_result = cursor.execute(self.query + self.order).fetchall()
 
         if query_result:
-            titles = ["ИД", "Название фильма", "Жанр", "Продолжительность", "Начало", "Кинотеатр", "Зал", "Цена"]
-            create_table(titles, query_result, self.films_table_data)
+            titles = ["ИД", "Название фильма", "Жанр", "Время", "Начало", "Кинотеатр", "Зал", "Цена"]
+            create_table(titles, query_result, self.films_table_data, equal_cols=False)
+            self.films_table_data.setColumnWidth(1, 160)
+            self.films_table_data.setColumnWidth(6, 48)
+            self.films_table_data.setColumnWidth(7, 60)
+            self.films_table_data.setColumnWidth(0, 20)
+            self.films_table_data.setColumnWidth(3, 97)
         else:
             self.clear_table()
 
@@ -817,9 +825,13 @@ class AllFilms(QWidget, Ui_AllFilms):
                                       f"ORDER BY films.name;").fetchall()
 
         if query_result:
-            titles = ["ИД", "Название фильма", "Жанр", "Продолжительность", "Начало", "Кинотеатр", "Зал", "Цена"]
-            create_table(titles, query_result, self.film_table_data)
-            self.film_table_data.resizeColumnToContents(1)
+            titles = ["ИД", "Название фильма", "Жанр", "Время", "Начало", "Кинотеатр", "Зал", "Цена"]
+            create_table(titles, query_result, self.film_table_data, equal_cols=False)
+            self.film_table_data.setColumnWidth(1, 160)
+            self.film_table_data.setColumnWidth(6, 30)
+            self.film_table_data.setColumnWidth(7, 30)
+            self.film_table_data.setColumnWidth(0, 20)
+            self.film_table_data.setColumnWidth(3, 97)
         else:
             self.clear_table()
 
@@ -1090,7 +1102,10 @@ class AllReports(QWidget, Ui_AllReports):
         query_result = cursor.execute("SELECT * FROM reports").fetchall()
         if query_result:
             titles = ["ID", "Путь к файлу", "Время создания"]
-            create_table(titles, query_result, self.reports_table_data)
+            create_table(titles, query_result, self.reports_table_data, equal_cols=False)
+            self.reports_table_data.setColumnWidth(0, 30)
+            self.reports_table_data.setColumnWidth(1, 317)
+            self.reports_table_data.setColumnWidth(2, 318)
 
 
 def except_hook(cls, exception, traceback):
