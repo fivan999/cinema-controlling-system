@@ -57,6 +57,21 @@ def format_datetime(table: QTableWidget, column: int):
         table.item(row, column).setText(formated_datetime)
 
 
+def delete_seanses():
+    all_seances = cursor.execute("SELECT id, datetime FROM films").fetchall()
+    for seanse in all_seances:
+        if check_date(seanse[1]):
+            cursor.execute(f"UPDATE films SET can_buy=0 WHERE id={seanse[0]}")
+    connection.commit()
+
+
+def check_date(datetime_str: str):
+    date_and_time = dt.datetime(*map(int, datetime_str.split()))
+    if date_and_time <= dt.datetime.now():
+        return True
+    return False
+
+
 class BaseWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -65,6 +80,7 @@ class BaseWindow(QMainWindow):
         self.login_window = LoginWindow()
         self.register_window = RegisterWindow()
         self.login_window.show()
+        delete_seanses()
 
     def create_menubar(self) -> None:
         self.menuBar = QMenuBar(self)
