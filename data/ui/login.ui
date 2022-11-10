@@ -13,7 +13,15 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
-  <widget class="QWidget" name="centralwidget">
+  <widget class="QWidget" name="centralwidget" native="true">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>303</width>
+     <height>153</height>
+    </rect>
+   </property>
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
@@ -57,6 +65,9 @@
       <height>20</height>
      </rect>
     </property>
+    <property name="echoMode">
+     <enum>QLineEdit::Normal</enum>
+    </property>
    </widget>
    <widget class="QLabel" name="label_3">
     <property name="geometry">
@@ -79,6 +90,9 @@
       <width>113</width>
       <height>20</height>
      </rect>
+    </property>
+    <property name="echoMode">
+     <enum>QLineEdit::Password</enum>
     </property>
    </widget>
    <widget class="QPushButton" name="login_button">

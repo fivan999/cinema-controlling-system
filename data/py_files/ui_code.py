@@ -380,8 +380,9 @@ class Ui_AllGenres(object):
 class Ui_Login(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.setFixedSize(309, 175)
+        MainWindow.resize(309, 175)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
+        self.centralwidget.setGeometry(QtCore.QRect(0, 0, 303, 153))
         self.centralwidget.setObjectName("centralwidget")
         self.label = QtWidgets.QLabel(self.centralwidget)
         self.label.setGeometry(QtCore.QRect(110, 0, 91, 61))
@@ -395,12 +396,14 @@ class Ui_Login(object):
         self.label_2.setObjectName("label_2")
         self.login_edit = QtWidgets.QLineEdit(self.centralwidget)
         self.login_edit.setGeometry(QtCore.QRect(120, 60, 113, 20))
+        self.login_edit.setEchoMode(QtWidgets.QLineEdit.Normal)
         self.login_edit.setObjectName("login_edit")
         self.label_3 = QtWidgets.QLabel(self.centralwidget)
         self.label_3.setGeometry(QtCore.QRect(70, 100, 47, 13))
         self.label_3.setObjectName("label_3")
         self.password_edit = QtWidgets.QLineEdit(self.centralwidget)
         self.password_edit.setGeometry(QtCore.QRect(120, 100, 113, 20))
+        self.password_edit.setEchoMode(QtWidgets.QLineEdit.Password)
         self.password_edit.setObjectName("password_edit")
         self.login_button = QtWidgets.QPushButton(self.centralwidget)
         self.login_button.setGeometry(QtCore.QRect(70, 130, 71, 23))
@@ -425,8 +428,10 @@ class Ui_Login(object):
 class Ui_Register(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
+        Form.resize(307, 213)
         self.password_edit = QtWidgets.QLineEdit(Form)
         self.password_edit.setGeometry(QtCore.QRect(120, 100, 113, 20))
+        self.password_edit.setEchoMode(QtWidgets.QLineEdit.Password)
         self.password_edit.setObjectName("password_edit")
         self.login_button = QtWidgets.QPushButton(Form)
         self.login_button.setGeometry(QtCore.QRect(70, 170, 71, 23))
@@ -455,6 +460,7 @@ class Ui_Register(object):
         self.label_4.setObjectName("label_4")
         self.password_again = QtWidgets.QLineEdit(Form)
         self.password_again.setGeometry(QtCore.QRect(120, 140, 113, 20))
+        self.password_again.setEchoMode(QtWidgets.QLineEdit.Password)
         self.password_again.setObjectName("password_again")
 
         self.retranslateUi(Form)
