@@ -39,6 +39,9 @@ class Ui_AllCinemas(object):
         self.report_button = QtWidgets.QPushButton(Form)
         self.report_button.setGeometry(QtCore.QRect(270, 10, 121, 23))
         self.report_button.setObjectName("report_button")
+        self.update_button = QtWidgets.QPushButton(Form)
+        self.update_button.setGeometry(QtCore.QRect(400, 10, 121, 23))
+        self.update_button.setObjectName("update_button")
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
@@ -49,6 +52,7 @@ class Ui_AllCinemas(object):
         self.add_cinema_button.setText(_translate("Form", "Добавить кинотеатр"))
         self.delete_cinema_button.setText(_translate("Form", "Удалить кинотеатр"))
         self.report_button.setText(_translate("Form", "Создать отчет"))
+        self.update_button.setText(_translate("Form", "Обновить данные"))
 
 
 class Ui_CreateAfisha(object):
@@ -86,7 +90,7 @@ class Ui_CreateAfisha(object):
 class Ui_CreateFilm(object):
     def setupUi(self, Form):
         Form.setObjectName("Form")
-        Form.resize(261, 312)
+        Form.resize(261, 339)
         self.label = QtWidgets.QLabel(Form)
         self.label.setGeometry(QtCore.QRect(10, 10, 61, 16))
         self.label.setObjectName("label")
@@ -144,13 +148,16 @@ class Ui_CreateFilm(object):
         self.price_box.setGeometry(QtCore.QRect(90, 250, 161, 22))
         self.price_box.setMaximum(99999999)
         self.price_box.setObjectName("price_box")
+        self.update_genres_button = QtWidgets.QPushButton(Form)
+        self.update_genres_button.setGeometry(QtCore.QRect(10, 310, 241, 23))
+        self.update_genres_button.setObjectName("update_genres_button")
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
-        Form.setWindowTitle(_translate("Form", "Создание сеанса"))
+        Form.setWindowTitle(_translate("Form", "Form"))
         self.label.setText(_translate("Form", "Название:"))
         self.label_3.setText(_translate("Form", "Жанр:"))
         self.label_4.setText(_translate("Form", "Длительность:"))
@@ -159,6 +166,7 @@ class Ui_CreateFilm(object):
         self.label_7.setText(_translate("Form", "ID кинотеатра:"))
         self.save_button.setText(_translate("Form", "Сохранить"))
         self.label_8.setText(_translate("Form", "Цена:"))
+        self.update_genres_button.setText(_translate("Form", "Обновить поле с жанрами"))
 
 
 class Ui_CreateReport(object):
@@ -335,6 +343,9 @@ class Ui_AllFilms(object):
         self.create_afisha_button = QtWidgets.QPushButton(Form)
         self.create_afisha_button.setGeometry(QtCore.QRect(230, 10, 101, 23))
         self.create_afisha_button.setObjectName("create_afisha_button")
+        self.update_button = QtWidgets.QPushButton(Form)
+        self.update_button.setGeometry(QtCore.QRect(340, 10, 111, 23))
+        self.update_button.setObjectName("update_button")
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
@@ -342,9 +353,10 @@ class Ui_AllFilms(object):
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
         Form.setWindowTitle(_translate("Form", "Form"))
-        self.add_film_button.setText(_translate("Form", "Добавить сеанс"))
-        self.delete_film_button.setText(_translate("Form", "Удалить сеанс"))
+        self.add_film_button.setText(_translate("Form", "Добавить фильм"))
+        self.delete_film_button.setText(_translate("Form", "Удалить фильм"))
         self.create_afisha_button.setText(_translate("Form", "Создать афишу"))
+        self.update_button.setText(_translate("Form", "Обновить данные"))
 
 
 class Ui_AllGenres(object):
@@ -365,6 +377,9 @@ class Ui_AllGenres(object):
         self.genre_table_data.setObjectName("genre_table_data")
         self.genre_table_data.setColumnCount(0)
         self.genre_table_data.setRowCount(0)
+        self.update_button = QtWidgets.QPushButton(Form)
+        self.update_button.setGeometry(QtCore.QRect(310, 10, 111, 23))
+        self.update_button.setObjectName("update_button")
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
@@ -375,6 +390,7 @@ class Ui_AllGenres(object):
         self.add_genre_button.setText(_translate("Form", "Добавить жанр"))
         self.edit_genre_button.setText(_translate("Form", "Изменить жанр"))
         self.delete_genre_button.setText(_translate("Form", "Удалить жанр"))
+        self.update_button.setText(_translate("Form", "Обновить данные"))
 
 
 class Ui_Login(object):
@@ -426,49 +442,49 @@ class Ui_Login(object):
 
 
 class Ui_Register(object):
-    def setupUi(self, Form):
-        Form.setObjectName("Form")
-        Form.resize(307, 213)
-        self.password_edit = QtWidgets.QLineEdit(Form)
+    def setupUi(self, MainWindow):
+        MainWindow.setObjectName("Form")
+        MainWindow.resize(307, 213)
+        self.password_edit = QtWidgets.QLineEdit(MainWindow)
         self.password_edit.setGeometry(QtCore.QRect(120, 100, 113, 20))
         self.password_edit.setEchoMode(QtWidgets.QLineEdit.Password)
         self.password_edit.setObjectName("password_edit")
-        self.login_button = QtWidgets.QPushButton(Form)
+        self.login_button = QtWidgets.QPushButton(MainWindow)
         self.login_button.setGeometry(QtCore.QRect(70, 170, 71, 23))
         self.login_button.setObjectName("login_button")
-        self.register_button = QtWidgets.QPushButton(Form)
+        self.register_button = QtWidgets.QPushButton(MainWindow)
         self.register_button.setGeometry(QtCore.QRect(150, 170, 81, 23))
         self.register_button.setObjectName("register_button")
-        self.label = QtWidgets.QLabel(Form)
+        self.label = QtWidgets.QLabel(MainWindow)
         self.label.setGeometry(QtCore.QRect(60, 0, 191, 61))
         font = QtGui.QFont()
         font.setPointSize(24)
         self.label.setFont(font)
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.label.setObjectName("label")
-        self.label_2 = QtWidgets.QLabel(Form)
+        self.label_2 = QtWidgets.QLabel(MainWindow)
         self.label_2.setGeometry(QtCore.QRect(70, 60, 41, 16))
         self.label_2.setObjectName("label_2")
-        self.label_3 = QtWidgets.QLabel(Form)
+        self.label_3 = QtWidgets.QLabel(MainWindow)
         self.label_3.setGeometry(QtCore.QRect(70, 100, 47, 13))
         self.label_3.setObjectName("label_3")
-        self.login_edit = QtWidgets.QLineEdit(Form)
+        self.login_edit = QtWidgets.QLineEdit(MainWindow)
         self.login_edit.setGeometry(QtCore.QRect(120, 60, 113, 20))
         self.login_edit.setObjectName("login_edit")
-        self.label_4 = QtWidgets.QLabel(Form)
+        self.label_4 = QtWidgets.QLabel(MainWindow)
         self.label_4.setGeometry(QtCore.QRect(20, 140, 91, 20))
         self.label_4.setObjectName("label_4")
-        self.password_again = QtWidgets.QLineEdit(Form)
+        self.password_again = QtWidgets.QLineEdit(MainWindow)
         self.password_again.setGeometry(QtCore.QRect(120, 140, 113, 20))
         self.password_again.setEchoMode(QtWidgets.QLineEdit.Password)
         self.password_again.setObjectName("password_again")
 
-        self.retranslateUi(Form)
-        QtCore.QMetaObject.connectSlotsByName(Form)
+        self.retranslateUi(MainWindow)
+        QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-    def retranslateUi(self, Form):
+    def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        Form.setWindowTitle(_translate("Form", "Регистрация"))
+        MainWindow.setWindowTitle(_translate("Form", "Регистрация"))
         self.login_button.setText(_translate("Form", "Вход"))
         self.register_button.setText(_translate("Form", "Регистрация"))
         self.label.setText(_translate("Form", "Регистрация"))
@@ -542,6 +558,9 @@ class Ui_AllRooms(object):
         self.room_table_data.setObjectName("room_table_data")
         self.room_table_data.setColumnCount(0)
         self.room_table_data.setRowCount(0)
+        self.update_button = QtWidgets.QPushButton(Form)
+        self.update_button.setGeometry(QtCore.QRect(240, 10, 111, 23))
+        self.update_button.setObjectName("update_button")
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
@@ -551,6 +570,7 @@ class Ui_AllRooms(object):
         Form.setWindowTitle(_translate("Form", "Form"))
         self.add_room_button.setText(_translate("Form", "Добавить кинозал"))
         self.delete_room_button.setText(_translate("Form", "Удалить кинозал"))
+        self.update_button.setText(_translate("Form", "Обновить данные"))
 
 
 class Ui_UserFilms(object):
@@ -636,7 +656,7 @@ class Ui_UserProfile(object):
         self.username_edit.setReadOnly(True)
         self.username_edit.setObjectName("username_edit")
         self.label_3 = QtWidgets.QLabel(Form)
-        self.label_3.setGeometry(QtCore.QRect(10, 40, 91, 16))
+        self.label_3.setGeometry(QtCore.QRect(10, 40, 91, 21))
         self.label_3.setObjectName("label_3")
         self.label_4 = QtWidgets.QLabel(Form)
         self.label_4.setGeometry(QtCore.QRect(430, 10, 81, 21))
@@ -647,13 +667,16 @@ class Ui_UserProfile(object):
         self.total_money_edit.setReadOnly(True)
         self.total_money_edit.setObjectName("total_money_edit")
         self.purchase_table_data = QtWidgets.QTableWidget(Form)
-        self.purchase_table_data.setGeometry(QtCore.QRect(10, 60, 721, 341))
+        self.purchase_table_data.setGeometry(QtCore.QRect(10, 70, 721, 331))
         self.purchase_table_data.setObjectName("purchase_table_data")
         self.purchase_table_data.setColumnCount(0)
         self.purchase_table_data.setRowCount(0)
         self.watch_cheque_button = QtWidgets.QPushButton(Form)
         self.watch_cheque_button.setGeometry(QtCore.QRect(640, 40, 91, 21))
         self.watch_cheque_button.setObjectName("watch_cheque_button")
+        self.update_button = QtWidgets.QPushButton(Form)
+        self.update_button.setGeometry(QtCore.QRect(520, 40, 111, 21))
+        self.update_button.setObjectName("update_button")
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
@@ -666,6 +689,7 @@ class Ui_UserProfile(object):
         self.label_3.setText(_translate("Form", "Мои покупки:"))
         self.label_4.setText(_translate("Form", "Сумма покупок:"))
         self.watch_cheque_button.setText(_translate("Form", "Посмотреть чек"))
+        self.update_button.setText(_translate("Form", "Обновить данные"))
 
 
 class Ui_AllUsers(object):
@@ -842,6 +866,9 @@ class Ui_AllReports(object):
         self.reports_table_data.setObjectName("reports_table_data")
         self.reports_table_data.setColumnCount(0)
         self.reports_table_data.setRowCount(0)
+        self.update_button = QtWidgets.QPushButton(Form)
+        self.update_button.setGeometry(QtCore.QRect(230, 10, 111, 23))
+        self.update_button.setObjectName("update_button")
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
@@ -851,3 +878,4 @@ class Ui_AllReports(object):
         Form.setWindowTitle(_translate("Form", "Form"))
         self.delete_button.setText(_translate("Form", "Удалить отчет"))
         self.watch_button.setText(_translate("Form", "Посмотреть отчет"))
+        self.update_button.setText(_translate("Form", "Обновить данные"))

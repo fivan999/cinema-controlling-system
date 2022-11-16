@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>261</width>
-    <height>312</height>
+    <height>339</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -223,6 +223,19 @@
    </property>
    <property name="maximum">
     <number>99999999</number>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="update_genres_button">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>310</y>
+     <width>241</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Обновить поле с жанрами</string>
    </property>
   </widget>
  </widget>
