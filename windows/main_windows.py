@@ -133,6 +133,7 @@ class RegisterWindow(QMainWindow, Ui_Register):
         self.login_edit.clear()
         self.password_edit.clear()
         self.password_again.clear()
+        self.close()
 
 
 class LoginWindow(QMainWindow, Ui_Login):
@@ -187,3 +188,4 @@ class LoginWindow(QMainWindow, Ui_Login):
     def clear_edits(self) -> None:
         self.login_edit.clear()
         self.password_edit.clear()
+        self.close()

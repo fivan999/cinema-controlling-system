@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import (QApplication)
-from windows.base_window import BaseWindow
+from windows.main_windows import BaseWindow
 
 
 def except_hook(cls, exception, traceback):
