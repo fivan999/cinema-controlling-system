@@ -24,7 +24,6 @@ class RoomView(QWidget, Ui_RoomView):
                                       "FROM seats "
                                       "INNER JOIN rooms ON rooms.id = seats.room "
                                       f"WHERE seats.film = {self.film_id}").fetchall()
-
         self.setWindowTitle(f"Зал {query_result[0][2]}")
         self.first_seat_id = query_result[0][0]
         self.rows, self.cols = query_result[0][3:]
