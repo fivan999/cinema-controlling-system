@@ -45,6 +45,3 @@ release/cinema-controlling-system.exe
   - View purchase's cheque
 ### And, of course, you can log in to the system or register
 #### You can view presentation in data/description_files/cinema-controlling-system.pptm
-## Main developers's contacts
-- [Vkontakte](https://vk.com/exp_ert_para_keet/)
-- [Telegram](https://t.me/bebra_dev/)
